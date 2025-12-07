@@ -1,6 +1,0 @@
-com\mutualidad\validacion\ValidacionServiceApplication.class
-com\mutualidad\validacion\controller\ValidacionController.class
-com\mutualidad\validacion\dto\ValidacionEstadoLaboralResponse$ValidacionEstadoLaboralResponseBuilder.class
-com\mutualidad\validacion\dto\ValidacionEstadoLaboralRequest$ValidacionEstadoLaboralRequestBuilder.class
-com\mutualidad\validacion\dto\ValidacionEstadoLaboralRequest.class
-com\mutualidad\validacion\dto\ValidacionEstadoLaboralResponse.class
