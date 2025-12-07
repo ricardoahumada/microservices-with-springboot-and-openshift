@@ -1,0 +1,59 @@
+# =============================================
+# Umbrella Chart - Mutualidad Platform
+# =============================================
+
+# Kafka
+kafka:
+  enabled: true
+  replicaCount: 1
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+  controller:
+    replicaCount: 1
+  kraft:
+    enabled: true
+  zookeeper:
+    enabled: false
+
+# PostgreSQL
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "admin123"
+    database: "mutualidaddb"
+  primary:
+    persistence:
+      size: 1Gi
+
+# Afiliado Service (Producer)
+afiliado-service:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: mutualidad/afiliado-service
+    tag: "1.0.0"
+  kafka:
+    bootstrapServers: "{{ .Release.Name }}-kafka:9092"
+
+# Notificacion Service (Consumer)
+notificacion-service:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: mutualidad/notificacion-service
+    tag: "1.0.0"
+  kafka:
+    bootstrapServers: "{{ .Release.Name }}-kafka:9092"
+
+# Validacion Service (Consumer con DLQ)
+validacion-service:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: mutualidad/validacion-service
+    tag: "1.0.0"
+  kafka:
+    bootstrapServers: "{{ .Release.Name }}-kafka:9092"
