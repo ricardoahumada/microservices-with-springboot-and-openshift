@@ -1,0 +1,6 @@
+com\mutualidad\notificacion\controller\NotificacionController.class
+com\mutualidad\notificacion\dto\NotificacionRequest$NotificacionRequestBuilder.class
+com\mutualidad\notificacion\dto\NotificacionRequest.class
+com\mutualidad\notificacion\dto\NotificacionResponse$NotificacionResponseBuilder.class
+com\mutualidad\notificacion\dto\NotificacionResponse.class
+com\mutualidad\notificacion\NotificacionServiceApplication.class

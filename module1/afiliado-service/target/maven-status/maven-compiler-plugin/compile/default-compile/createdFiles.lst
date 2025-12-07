@@ -1,0 +1,11 @@
+com\mutualidad\afiliado\api\dto\AfiliadoRequest.class
+com\mutualidad\afiliado\AfiliadoServiceApplication.class
+com\mutualidad\afiliado\domain\model\Afiliado$AfiliadoBuilder.class
+com\mutualidad\afiliado\domain\model\DNI.class
+com\mutualidad\afiliado\domain\model\Afiliado.class
+com\mutualidad\afiliado\api\controller\AfiliadoController.class
+com\mutualidad\afiliado\api\dto\AfiliadoResponse$AfiliadoResponseBuilder.class
+com\mutualidad\afiliado\application\service\AfiliadoService.class
+com\mutualidad\afiliado\api\dto\AfiliadoResponse.class
+com\mutualidad\afiliado\domain\model\EstadoAfiliado.class
+com\mutualidad\afiliado\infrastructure\persistence\AfiliadoJpaRepository.class
