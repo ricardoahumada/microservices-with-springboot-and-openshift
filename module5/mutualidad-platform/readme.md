@@ -374,11 +374,41 @@ docker rmi mutualidad/validacion-service:1.0.0
 ### Pod en estado ImagePullBackOff
 
 ```bash
+# Diagnosticar el problema
+kubectl describe pod <pod-name>
+# Revisar seccion "Events" al final para ver el error exacto
+```
+
+**Para imagenes locales (mutualidad/*):**
+```bash
 # Verificar que la imagen existe localmente
 docker images | grep mutualidad
 
 # Si usas Minikube, cargar imagen
 minikube image load mutualidad/afiliado-service:1.0.0
+```
+
+**Para imagenes de Bitnami (postgresql, kafka):**
+
+El error suele ser por rate limit de Docker Hub. Soluciones:
+
+```bash
+# Opcion 1: Descargar manualmente en Minikube
+minikube ssh
+docker pull bitnami/postgresql:15.4.0
+exit
+
+# Opcion 2: Especificar version en values.yaml
+# Editar charts/afiliado-service-chart/values.yaml:
+postgresql:
+  image:
+    tag: "15.4.0"
+
+# Opcion 3: Usar pull secret de Docker Hub
+kubectl create secret docker-registry dockerhub-secret \
+  --docker-server=https://index.docker.io/v1/ \
+  --docker-username=<tu-usuario> \
+  --docker-password=<tu-token>
 ```
 
 ### Pod en estado CrashLoopBackOff
