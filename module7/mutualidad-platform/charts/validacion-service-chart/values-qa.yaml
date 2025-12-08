@@ -1,0 +1,43 @@
+# Values for QA environment
+replicaCount: 2
+
+image:
+  repository: quay.io/mutualidad/validacion-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: qa
+  JAVA_OPTS: "-Xms512m -Xmx768m"
+  LOG_LEVEL: INFO
+
+postgresql:
+  enabled: true
+  image:
+    tag: "latest"
+  auth:
+    postgresPassword: "qa_secure_123"
+    database: "validaciondb_qa"
+  primary:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+route:
+  enabled: true
+  host: validacion-qa.apps.openshift.local
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70

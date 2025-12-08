@@ -1,0 +1,40 @@
+# Values for DEV environment
+replicaCount: 1
+
+image:
+  repository: mutualidad/afiliado-service
+  tag: "latest"
+  pullPolicy: Always
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: dev
+  JAVA_OPTS: "-Xms256m -Xmx384m"
+  LOG_LEVEL: DEBUG
+
+postgresql:
+  enabled: true
+  image:
+    tag: "latest"
+  auth:
+    postgresPassword: "dev123"
+    database: "afiliadodb_dev"
+  primary:
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+route:
+  enabled: true
+  host: afiliado-dev.apps.openshift.local
+
+autoscaling:
+  enabled: false

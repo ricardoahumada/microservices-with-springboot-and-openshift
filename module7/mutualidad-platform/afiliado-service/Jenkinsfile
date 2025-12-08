@@ -1,0 +1,199 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  containers:
+  - name: maven
+    image: maven:3.9-eclipse-temurin-11
+    command: ["sleep", "infinity"]
+    volumeMounts:
+    - name: maven-cache
+      mountPath: /root/.m2
+  - name: docker
+    image: docker:24-cli
+    command: ["sleep", "infinity"]
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  - name: helm
+    image: alpine/helm:3.14.0
+    command: ["sleep", "infinity"]
+  volumes:
+  - name: maven-cache
+    persistentVolumeClaim:
+      claimName: maven-cache-pvc
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+'''
+        }
+    }
+
+    parameters {
+        choice(name: 'ENVIRONMENT', 
+               choices: ['dev', 'qa', 'prod'], 
+               description: 'Target environment for deployment')
+        booleanParam(name: 'SKIP_TESTS', 
+                     defaultValue: false, 
+                     description: 'Skip unit tests')
+    }
+
+    environment {
+        APP_NAME = 'afiliado-service'
+        APP_VERSION = '1.0.0'
+        REGISTRY = 'quay.io/mutualidad'
+        OPENSHIFT_PROJECT = "mutualidad-${params.ENVIRONMENT}"
+        IMAGE_TAG = "${APP_VERSION}-${BUILD_NUMBER}"
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.IMAGE_TAG = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                container('maven') {
+                    dir('afiliado-service') {
+                        sh '''
+                            echo "Building ${APP_NAME}..."
+                            mvn clean package -DskipTests=${SKIP_TESTS}
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Code Analysis') {
+            when {
+                expression { params.ENVIRONMENT != 'dev' }
+            }
+            steps {
+                container('maven') {
+                    dir('afiliado-service') {
+                        sh '''
+                            echo "Running SonarQube analysis..."
+                            # mvn sonar:sonar -Dsonar.host.url=${SONAR_URL}
+                            echo "Sonar analysis completed (simulated)"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                container('docker') {
+                    dir('afiliado-service') {
+                        script {
+                            def fullImageName = "${REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
+                            sh """
+                                echo "Building Docker image: ${fullImageName}"
+                                docker build -t ${fullImageName} .
+                                docker tag ${fullImageName} ${REGISTRY}/${APP_NAME}:latest
+                                
+                                echo "Pushing to registry..."
+                                # docker push ${fullImageName}
+                                # docker push ${REGISTRY}/${APP_NAME}:latest
+                                echo "Push completed (simulated)"
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to OpenShift') {
+            steps {
+                container('helm') {
+                    script {
+                        def valuesFile = "values-${params.ENVIRONMENT}.yaml"
+                        sh """
+                            echo "Deploying to ${OPENSHIFT_PROJECT} with ${valuesFile}..."
+                            
+                            cd charts/afiliado-service-chart
+                            
+                            helm upgrade --install ${APP_NAME} . \\
+                                --namespace ${OPENSHIFT_PROJECT} \\
+                                --values ${valuesFile} \\
+                                --set image.tag=${IMAGE_TAG} \\
+                                --set image.repository=${REGISTRY}/${APP_NAME} \\
+                                --wait \\
+                                --timeout 5m \\
+                                --atomic
+                            
+                            echo "Deployment completed successfully"
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                container('helm') {
+                    sh """
+                        echo "Verifying deployment..."
+                        helm status ${APP_NAME} -n ${OPENSHIFT_PROJECT}
+                        
+                        echo "Checking pod status..."
+                        kubectl get pods -n ${OPENSHIFT_PROJECT} -l app.kubernetes.io/name=${APP_NAME}
+                    """
+                }
+            }
+        }
+
+        stage('Production Approval') {
+            when {
+                expression { params.ENVIRONMENT == 'prod' }
+            }
+            steps {
+                input message: 'Deploy to Production?', 
+                      ok: 'Approve',
+                      submitter: 'admin,devops-lead'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully for ${APP_NAME} v${IMAGE_TAG}"
+            // slackSend channel: '#deployments', 
+            //           color: 'good', 
+            //           message: "SUCCESS: ${APP_NAME} v${IMAGE_TAG} deployed to ${params.ENVIRONMENT}"
+        }
+        failure {
+            echo "Pipeline failed for ${APP_NAME}"
+            // slackSend channel: '#deployments', 
+            //           color: 'danger', 
+            //           message: "FAILED: ${APP_NAME} deployment to ${params.ENVIRONMENT}"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
