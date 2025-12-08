@@ -45,7 +45,7 @@ readinessProbe:
 postgresql:
   enabled: true
   image:
-    tag: "latest"
+    tag: "15.4.0"
   auth:
     postgresPassword: "admin123"
     database: "afiliadodb"
