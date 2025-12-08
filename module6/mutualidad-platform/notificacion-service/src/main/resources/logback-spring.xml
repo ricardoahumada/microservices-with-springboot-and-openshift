@@ -15,9 +15,9 @@
     </appender>
 
     <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/${appName}/${appName}.json</file>
+        <file>./logs/${appName}.json</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/${appName}/${appName}-%d{yyyy-MM-dd}.json</fileNamePattern>
+            <fileNamePattern>./logs/${appName}-%d{yyyy-MM-dd}.json</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -31,9 +31,9 @@
     </appender>
 
     <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/${appName}/audit.json</file>
+        <file>./logs/audit.json</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/${appName}/audit-%d{yyyy-MM-dd}.json</fileNamePattern>
+            <fileNamePattern>./logs/audit-%d{yyyy-MM-dd}.json</fileNamePattern>
             <maxHistory>90</maxHistory>
         </rollingPolicy>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
