@@ -21,6 +21,8 @@ kafka:
 # PostgreSQL
 postgresql:
   enabled: true
+  image:
+    tag: "latest"
   auth:
     postgresPassword: "admin123"
     database: "mutualidaddb"

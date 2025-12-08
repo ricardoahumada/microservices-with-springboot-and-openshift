@@ -44,6 +44,8 @@ readinessProbe:
 # PostgreSQL (para ejercicio 3)
 postgresql:
   enabled: true
+  image:
+    tag: "latest"
   auth:
     postgresPassword: "admin123"
     database: "afiliadodb"
