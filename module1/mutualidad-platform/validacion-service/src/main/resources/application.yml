@@ -1,29 +1,42 @@
 spring:
   application:
     name: validacion-service
+  
   datasource:
-    url: jdbc:h2:mem:validaciondb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:validaciondb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
-    password:
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+    password: 
+    driver-class-name: org.h2.Driver
+  
   h2:
     console:
       enabled: true
       path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
 
 server:
   port: 8084
+  servlet:
+    context-path: /api/v1
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+
+logging:
+  level:
+    com.mutualidad: DEBUG
