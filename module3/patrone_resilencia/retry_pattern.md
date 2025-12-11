@@ -29,6 +29,9 @@ El patrón **Retry** es un mecanismo de resilencia que **intenta ejecutar una op
 - **Circuit Breaker Integration**: Pausa reintentos cuando el sistema está degradado
 - **Context-Aware Retry**: Decisiones basadas en contexto de negocio
 
+<br>
+<img src="./imgs/retry.png" style="max-width:700px" />
+
 ---
 
 ## **Casos de Uso**

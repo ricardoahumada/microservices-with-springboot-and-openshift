@@ -11,6 +11,9 @@ El patrón **Timeout** es un mecanismo de resilencia que **limita el tiempo máx
 - Define un límite temporal máximo para ejecuciones
 - Permite recuperación elegante ante demoras
 
+<br>
+<img src="./imgs/timeout.png" style="max-width:700px" />
+
 #### 2. **Tipos de Timeout**
 - **Fixed Timeout**: Tiempo fijo predeterminado
 - **Dynamic Timeout**: Tiempo que se ajusta según condiciones
@@ -26,6 +29,7 @@ El patrón **Timeout** es un mecanismo de resilencia que **limita el tiempo máx
 - **Request Level**: Por petición individual
 - **Service Level**: Por servicio específico
 - **System Level**: A nivel de toda la aplicación
+
 
 ---
 

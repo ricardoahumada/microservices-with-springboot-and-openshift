@@ -16,17 +16,27 @@ El patrón **Circuit Breaker** es un mecanismo de resilencia que **protege un si
 - **OPEN**: Bloquea llamadas (falla inmediatamente)
 - **HALF-OPEN**: Permite una llamada de prueba (evalúa si el servicio se recuperó)
 
+<br>
+
+![Hexagonal](./imgs/circuit_breaker.png)
+
+
 #### 3. **Detección de Fallos**
 - **Failure Threshold**: Número de fallos consecutivos para abrir
 - **Success Threshold**: Número de éxitos para cerrar (desde HALF-OPEN)
 - **Timeout**: Tiempo de espera antes de intentar HALF-OPEN
 - **Sliding Window**: Ventana de tiempo para evaluar estadísticas
 
+<br>
+<img src="./imgs/fallback.webp" style="max-width:500px" />
+
+
 #### 4. **Estrategias de Fallback**
 - **Fail Fast**: Falla inmediatamente sin operación
 - **Fallback**: Ejecuta operación alternativa
 - **Cache**: Retorna datos desde cache local
 - **Degraded Service**: Funcionalidad reducida
+
 
 ---
 

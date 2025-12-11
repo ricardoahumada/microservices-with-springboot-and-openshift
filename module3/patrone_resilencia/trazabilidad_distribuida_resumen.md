@@ -4,7 +4,13 @@
 
 La **trazabilidad distribuida** es la capacidad de rastrear y correlacionar requests a través de múltiples servicios y sistemas en una arquitectura de microservicios. Permite seguir el flujo completo de una transacción desde el request inicial hasta las múltiples llamadas de servicios que se ejecutan para satisfacerlo.
 
+<br>
+<img src="./imgs/dist_traceability.png" style="max-width:700px" />
+<br>
+<br>
+
 **Concepto clave**: Un **trace** representa el viaje completo de un request a través del sistema, mientras que un **span** representa una operación individual dentro de ese trace.
+
 
 ---
 

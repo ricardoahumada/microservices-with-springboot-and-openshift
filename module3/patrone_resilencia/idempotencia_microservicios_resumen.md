@@ -14,6 +14,11 @@ La **idempotencia** es una propiedad fundamental en sistemas distribuidos donde 
 - **Idempotente**: La operación puede repetirse sin efectos secundarios no deseados
 - **Segura**: La operación no cambia el estado del sistema (read-only)
 
+<br>
+<img src="./imgs/idempotency.png" style="max-width:700px" />
+
+
+
 ### Tipos de Idempotencia
 
 #### 1. Idempotencia por Definición
