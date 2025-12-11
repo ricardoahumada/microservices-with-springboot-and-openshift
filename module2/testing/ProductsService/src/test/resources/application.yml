@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: ProductsService
+  profiles.active: testing
+
+server:
+  servlet.contextPath: /api
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
+
+spring.mvc.pathmatch.matching-strategy: ANT_PATH_MATCHER
+
+springdoc:
+  api-docs.enabled: false
+  swagger-ui.enabled: false
+
+products.openapi:
+  dev-url: http://localhost:8080
+  prod-url: https://products-api.com
+
+---
+spring:
+  sql.init.mode: never  # avoid loading
+  config.activate.on-profile: testing
+  devtools.restart.enabled: true
+  application:
+    name: ProductsService
+  datasource:
+    url: "jdbc:h2:mem:productsdb"
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      generate-ddl: true
+      hbm2ddl.auto: create
+    defer-datasource-initialization: true
+  h2:
+    console.enabled: false
+    console.path: /h2-ui
+
+server:
+  #  servlet.contextPath: /api
+  port: 9090
