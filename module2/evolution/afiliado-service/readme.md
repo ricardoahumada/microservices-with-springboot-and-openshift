@@ -174,3 +174,74 @@ com.mutualidad.afiliado/
 - Cambiar base de datos: solo el adaptador de persistencia
 - Cambiar notificaciones: solo el adaptador de notificación
 - Añadir nuevo canal: crear nuevo adaptador de entrada
+
+---
+
+## Ejecución
+
+### Desarrollo (H2 en memoria)
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Tests
+```bash
+mvn test -Dspring.profiles.active=test
+```
+
+### Producción
+```bash
+java -jar target/afiliado-service-1.0.0-SNAPSHOT.jar \
+  --spring.profiles.active=prod \
+  --DB_HOST=db.mutualidad.com \
+  --DB_USER=afiliado_user \
+  --DB_PASSWORD=secret
+```
+
+## API Endpoints
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/v1/afiliados` | Registrar nuevo afiliado |
+| GET | `/api/v1/afiliados/{id}` | Consultar por ID |
+| GET | `/api/v1/afiliados/documento/{tipo}/{numero}` | Consultar por documento |
+| POST | `/api/v1/afiliados/{id}/baja` | Dar de baja |
+| POST | `/api/v1/afiliados/{id}/reactivar` | Reactivar |
+| PUT | `/api/v1/afiliados/{id}/contacto` | Actualizar contacto |
+
+## Ejemplos de Uso
+
+### Registrar Afiliado
+
+```bash
+curl -X POST http://localhost:8080/api/v1/afiliados \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipoDocumento": "DNI",
+    "numeroDocumento": "12345678Z",
+    "nombre": "Juan",
+    "primerApellido": "García",
+    "segundoApellido": "López",
+    "fechaNacimiento": "1990-05-15",
+    "email": "juan@email.com",
+    "telefono": "600123456",
+    "direccion": "Calle Mayor 1",
+    "codigoPostal": "28001",
+    "provincia": "Madrid",
+    "codigoEmpresa": "EMP001"
+  }'
+```
+
+### Consultar por Documento
+
+```bash
+curl http://localhost:8080/api/v1/afiliados/documento/DNI/12345678Z
+```
+
+### Dar de Baja
+
+```bash
+curl -X POST http://localhost:8080/api/v1/afiliados/{id}/baja \
+  -H "Content-Type: application/json" \
+  -d '{"motivo": "Cambio de mutualidad"}'
+```

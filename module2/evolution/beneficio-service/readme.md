@@ -232,3 +232,46 @@ com.mutualidad.beneficio/
 - Pueden usar bases de datos diferentes
 - Queries pueden usar caché agresivo
 
+---
+
+## Ejemplos de Uso
+
+### Asignar Beneficio
+
+```bash
+curl -X POST http://localhost:8080/api/v1/beneficios \
+  -H "Content-Type: application/json" \
+  -d '{
+    "afiliadoId": "af-12345",
+    "tipoBeneficio": "SALUD",
+    "fechaInicio": "2024-01-01",
+    "fechaFin": "2024-12-31",
+    "monto": 500.00,
+    "descripcion": "Cobertura de salud básica",
+    "solicitadoPor": "admin@mutualidad.com"
+  }'
+```
+
+### Buscar Beneficios de un Afiliado
+
+```bash
+curl "http://localhost:8080/api/v1/beneficios?afiliadoId=af-12345&estado=ACTIVO"
+```
+
+### Obtener Resumen
+
+```bash
+curl http://localhost:8080/api/v1/afiliados/af-12345/beneficios/resumen
+```
+
+### Revocar Beneficio
+
+```bash
+curl -X POST http://localhost:8080/api/v1/beneficios/{id}/revocar \
+  -H "Content-Type: application/json" \
+  -d '{
+    "motivo": "Cambio de plan",
+    "fechaEfectiva": "2024-06-30",
+    "revocadoPor": "admin@mutualidad.com"
+  }'
+```
