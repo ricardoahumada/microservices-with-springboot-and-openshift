@@ -15,9 +15,9 @@
 
     <modules>
         <module>afiliado-service</module>
-        <module>beneficio-service</module>
+        <!-- <module>beneficio-service</module>
         <module>notificacion-service</module>
-        <module>validacion-service</module>
+        <module>validacion-service</module> -->
     </modules>
 
     <properties>
