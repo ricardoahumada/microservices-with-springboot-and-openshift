@@ -1,14 +1,3 @@
----
-AIGC:
-    ContentProducer: Minimax Agent AI
-    ContentPropagator: Minimax Agent AI
-    Label: AIGC
-    ProduceID: "00000000000000000000000000000000"
-    PropagateID: "00000000000000000000000000000000"
-    ReservedCode1: 30460221008634a5ac031cf7e1d71c8d821bb9344dcb9ac671c8658cfc0229e9af51d3990002210099c19c4ff76db73c016975287d4a53e4222f73f8eddc42ed1f15d294066c9d24
-    ReservedCode2: 304502206fb20f7ca0fad6bef598861678b3b879b78655156b4667287769e1be8aeebb51022100c984304ea761e8fcad5bea8e8ee08b11ba71d69cba71f98ab2c4ca931c461d30
----
-
 # Guía de Evolución: DDD Básico a Arquitectura CQRS
 
 > **Objetivo**: Transformar el `beneficio-service` desde una estructura DDD clásica hacia Arquitectura CQRS (Command Query Responsibility Segregation).

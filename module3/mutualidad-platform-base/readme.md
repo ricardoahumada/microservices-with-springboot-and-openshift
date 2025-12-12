@@ -1,14 +1,3 @@
----
-AIGC:
-    ContentProducer: Minimax Agent AI
-    ContentPropagator: Minimax Agent AI
-    Label: AIGC
-    ProduceID: "00000000000000000000000000000000"
-    PropagateID: "00000000000000000000000000000000"
-    ReservedCode1: 3046022100c309753bc7ec12978d57db539143c34d1748f150762c7069074c5229827a4c67022100c5d5bfd6cabfb19bf7a4fd7a1c8cc9399d766473a5eb45002dc88042d7a0b3d7
-    ReservedCode2: 304502203dd4dd94d9853b45b31c57a5ba822fd52575ebe5b1dd6a04f8f9b635f72a4885022100e74e9d1715cb513f59b6674bbe6ff7bf38bb5a910f28d026cd98e4b8fe687844
----
-
 # Mutualidad Platform - Version Base
 
 > **Plataforma base sin patrones de resiliencia**

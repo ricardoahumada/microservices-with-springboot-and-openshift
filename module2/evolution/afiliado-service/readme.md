@@ -1,14 +1,3 @@
----
-AIGC:
-    ContentProducer: Minimax Agent AI
-    ContentPropagator: Minimax Agent AI
-    Label: AIGC
-    ProduceID: "00000000000000000000000000000000"
-    PropagateID: "00000000000000000000000000000000"
-    ReservedCode1: 3046022100822cb3f03ad1759689c39be65fc305e95c7cf96195298799870ea23f651832a9022100bf4824eea60c695f19857e4a541d635f08aae63b79293eb81dca441782cf6c3b
-    ReservedCode2: 3046022100ea6a7754fd6ba23f45b16811ffc19ff31b6f33af9a610ec583b8d27840069465022100b0f021a91473ea0bd87fce1f06b87850fd54cdbc09afb98c9118543f968af162
----
-
 # Guía de Evolución: DDD Básico a Arquitectura Hexagonal
 
 > **Objetivo**: Transformar el `afiliado-service` desde una estructura DDD clásica hacia Arquitectura Hexagonal (Ports & Adapters).
