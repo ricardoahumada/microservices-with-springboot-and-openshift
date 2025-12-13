@@ -39,7 +39,7 @@ mutualidad-platform/
 
 ### 1.1 Dockerfile Basico (15 min)
 
-Revisar el Dockerfile de `afiliado-service/Dockerfile`:
+Genera el Dockerfile de `afiliado-service/Dockerfile`:
 
 ```dockerfile
 # Etapa 1: Build
