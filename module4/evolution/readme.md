@@ -17,8 +17,8 @@ mutualidad-platform/
 ## Flujo de Eventos
 
 ```
-┌─────────────────────┐         ┌──────────────────────────┐
-│  afiliado-service   │────────▶│   Topic: afiliado-eventos │
+┌─────────────────────┐         ┌───────────────────────────┐
+│  afiliado-service   │────────>│   Topic: afiliado-eventos │
 │  (Productor)        │         │   (3 particiones)         │
 └─────────────────────┘         └─────────────┬─────────────┘
                                               │
@@ -30,10 +30,10 @@ mutualidad-platform/
           └─────────────────────────┘             └────────────┬────────────┘
                                                                │ (si falla)
                                                                ▼
-                                                  ┌─────────────────────────┐
+                                                  ┌──────────────────────────────┐
                                                   │  Topic: afiliado-eventos.dlt │
-                                                  │  (Dead Letter Topic)    │
-                                                  └─────────────────────────┘
+                                                  │  (Dead Letter Topic)         │
+                                                  └──────────────────────────────┘
 ```
 
 ---
