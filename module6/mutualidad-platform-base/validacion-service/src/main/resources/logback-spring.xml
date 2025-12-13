@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- TODO Ejercicio 1.2: Configurar logs estructurados JSON -->
+    
+    <!-- 
+    PASO 1: Definir propiedades de Spring
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="validacion-service"/>
+    <springProperty scope="context" name="appVersion" source="app.version" defaultValue="1.0.0"/>
+    -->
+
+    <!-- Configuracion basica de consola (sin JSON) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 
+    TODO Ejercicio 1.2: Reemplazar el appender CONSOLE basico por uno con LogstashEncoder
+    (Ver afiliado-service para ejemplo completo)
+    -->
+
+    <!-- 
+    TODO Ejercicio 1.2: Agregar File Appender para logs JSON persistentes
+    (Ver afiliado-service para ejemplo completo)
+    -->
+
+    <!-- 
+    TODO Ejercicio 3.3: Agregar Audit Logger separado
+    (Ver afiliado-service para ejemplo completo)
+    -->
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
