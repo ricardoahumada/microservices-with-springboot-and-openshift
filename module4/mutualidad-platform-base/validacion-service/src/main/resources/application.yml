@@ -4,12 +4,30 @@ server:
 spring:
   application:
     name: validacion-service
-
-  # TODO: Descomentar y configurar Kafka Consumer
+  # TODO Ejercicio 4: Configurar consumidor Kafka
   # kafka:
   #   bootstrap-servers: localhost:9092
   #   consumer:
   #     group-id: validacion-group
   #     auto-offset-reset: earliest
   #     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  #     value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  #     value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  #     properties:
+  #       spring.json.trusted.packages: "*"
+  #       spring.json.value.default.type: com.mutualidad.validacion.event.AfiliadoEvent
+  #   # TODO Ejercicio 5: Configurar productor para enviar a DLT
+  #   producer:
+  #     key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #     value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# TODO Ejercicio 4 y 5: Configurar topics
+# app:
+#   kafka:
+#     topic:
+#       afiliado-eventos: afiliado-eventos
+#       afiliado-eventos-dlt: afiliado-eventos.dlt
+
+logging:
+  level:
+    com.mutualidad: DEBUG
+    org.springframework.kafka: INFO

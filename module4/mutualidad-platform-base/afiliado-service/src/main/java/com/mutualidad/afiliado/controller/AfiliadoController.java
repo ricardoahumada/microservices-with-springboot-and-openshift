@@ -1,46 +1,57 @@
 package com.mutualidad.afiliado.controller;
 
 import com.mutualidad.afiliado.service.AfiliadoEventPublisher;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * Controller REST para gestionar afiliados.
- * 
- * Cuando se crea un afiliado, publica un evento a Kafka.
- */
+@Slf4j
 @RestController
 @RequestMapping("/api/afiliados")
+@RequiredArgsConstructor
 public class AfiliadoController {
 
     private final AfiliadoEventPublisher eventPublisher;
 
-    public AfiliadoController(AfiliadoEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-    }
-
-    /**
-     * Crea un afiliado y publica evento a Kafka.
-     * 
-     * Ejemplo:
-     * POST /api/afiliados?dni=12345678A&nombre=Juan&apellidos=Garcia&email=juan@test.com
-     */
     @PostMapping
-    public ResponseEntity<Map<String, String>> crearAfiliado(
+    public ResponseEntity<Map<String, Object>> crearAfiliado(
             @RequestParam String dni,
             @RequestParam String nombre,
             @RequestParam String apellidos,
-            @RequestParam String email) {
+            @RequestParam String email,
+            @RequestParam String empresaId) {
         
-        // Publicar evento a Kafka
-        eventPublisher.publishAfiliadoCreated(dni, nombre, apellidos, email);
+        log.info("Creando afiliado: dni={}, nombre={} {}", dni, nombre, apellidos);
+        
+        eventPublisher.publishAfiliadoCreated(dni, nombre, apellidos, email, empresaId);
         
         return ResponseEntity.accepted().body(Map.of(
             "status", "ACCEPTED",
-            "message", "Evento de creacion publicado",
+            "message", "Evento de creacion de afiliado publicado",
             "dni", dni
+        ));
+    }
+
+    @PutMapping("/{afiliadoId}")
+    public ResponseEntity<Map<String, Object>> actualizarAfiliado(
+            @PathVariable String afiliadoId,
+            @RequestParam String dni,
+            @RequestParam String nombre,
+            @RequestParam String apellidos,
+            @RequestParam String email,
+            @RequestParam String empresaId) {
+        
+        log.info("Actualizando afiliado: id={}", afiliadoId);
+        
+        eventPublisher.publishAfiliadoUpdated(afiliadoId, dni, nombre, apellidos, email, empresaId);
+        
+        return ResponseEntity.accepted().body(Map.of(
+            "status", "ACCEPTED",
+            "message", "Evento de actualizacion de afiliado publicado",
+            "afiliadoId", afiliadoId
         ));
     }
 }

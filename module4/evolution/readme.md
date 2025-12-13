@@ -1,72 +1,65 @@
-# Evolución: mutualidad-platform-base → mutualidad-platform
+# Guía de Evolución: Integración con Apache Kafka
 
-## Resumen
+## Objetivo
+Esta guía muestra cómo evolucionar el proyecto `mutualidad-platform-base` hacia `mutualidad-platform` añadiendo integración con Apache Kafka para comunicación asíncrona basada en eventos.
 
-Esta guía explica cómo evolucionar el proyecto base (con TODOs) hacia la solución completa con Kafka.
+---
 
-```
-mutualidad-platform-base/     →     mutualidad-platform/
-(esqueleto con TODOs)               (solución completa)
-```
-
-## Archivos de Referencia
-
-Esta carpeta contiene las clases completas que debes usar para reemplazar los TODOs:
+## Estructura del Proyecto
 
 ```
-evolution/
-├── afiliado-service/
-│   ├── AfiliadoEvent.java          # DTO del evento
-│   ├── KafkaConfig.java            # Configuración del producer
-│   └── AfiliadoEventPublisher.java # Publicador de eventos
-├── notificacion-service/
-│   ├── AfiliadoEvent.java          # DTO (copia del producer)
-│   └── AfiliadoEventConsumer.java  # Consumer de notificaciones
-├── validacion-service/
-│   ├── AfiliadoEvent.java          # DTO (copia del producer)
-│   ├── KafkaConfig.java            # Configuración con DLQ
-│   └── AfiliadoValidationConsumer.java # Consumer con validación
-└── readme.md
+mutualidad-platform/
+├── afiliado-service/      # Productor de eventos
+├── notificacion-service/  # Consumidor para notificaciones
+└── validacion-service/    # Consumidor con DLQ
+```
+
+## Flujo de Eventos
+
+```
+┌─────────────────────┐         ┌──────────────────────────┐
+│  afiliado-service   │────────▶│   Topic: afiliado-eventos │
+│  (Productor)        │         │   (3 particiones)         │
+└─────────────────────┘         └─────────────┬─────────────┘
+                                              │
+                        ┌─────────────────────┴─────────────────────┐
+                        ▼                                           ▼
+          ┌─────────────────────────┐             ┌─────────────────────────┐
+          │  notificacion-service   │             │   validacion-service    │
+          │  (Consumer Group A)     │             │   (Consumer Group B)    │
+          └─────────────────────────┘             └────────────┬────────────┘
+                                                               │ (si falla)
+                                                               ▼
+                                                  ┌─────────────────────────┐
+                                                  │  Topic: afiliado-eventos.dlt │
+                                                  │  (Dead Letter Topic)    │
+                                                  └─────────────────────────┘
 ```
 
 ---
 
-## Paso 1: afiliado-service (Producer)
+## Ejercicio 1: Configuración del Entorno Kafka
 
-### 1.1 Actualizar pom.xml
+### Objetivo
+Configurar el topic principal para eventos de afiliados.
 
-Descomentar la dependencia de Kafka:
+### Archivos a Modificar
 
-```xml
-<dependency>
-    <groupId>org.springframework.kafka</groupId>
-    <artifactId>spring-kafka</artifactId>
-</dependency>
-```
+#### 1. `afiliado-service/src/main/resources/application.yml`
 
-**Añadir Lombok** (usado en la solución):
-```xml
-<dependency>
-    <groupId>org.projectlombok</groupId>
-    <artifactId>lombok</artifactId>
-    <optional>true</optional>
-</dependency>
-```
-
-### 1.2 Actualizar application.yml
+Descomentar la configuración de Kafka:
 
 ```yaml
-server:
-  port: 8081
-
 spring:
-  application:
-    name: afiliado-service
   kafka:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+      acks: all
+      retries: 3
 
 app:
   kafka:
@@ -74,52 +67,103 @@ app:
       afiliado-eventos: afiliado-eventos
 ```
 
-### 1.3 Reemplazar AfiliadoEvent.java
+#### 2. `afiliado-service/.../config/KafkaConfig.java`
 
-Copiar: `evolution/afiliado-service/AfiliadoEvent.java`
+Implementar la creación del topic:
 
-**Ubicación destino:** `src/main/java/com/mutualidad/afiliado/event/`
+```java
+@Value("${app.kafka.topic.afiliado-eventos}")
+private String afiliadoEventosTopic;
 
-**Cambios clave:**
-- Usa Lombok (@Data, @Builder)
-- Incluye clase interna `AfiliadoPayload`
-- Campos: eventId, eventType, timestamp, payload
+@Bean
+public NewTopic afiliadoEventosTopic() {
+    return TopicBuilder.name(afiliadoEventosTopic)
+            .partitions(3)    // Permite 3 consumidores en paralelo
+            .replicas(1)      // 1 réplica para desarrollo local
+            .build();
+}
+```
 
-### 1.4 Reemplazar KafkaConfig.java
-
-Copiar: `evolution/afiliado-service/KafkaConfig.java`
-
-**Cambios clave:**
-- Usa `TopicBuilder` para crear topic
-- Inyecta nombre del topic desde application.yml
-- Configura 3 particiones
-
-### 1.5 Reemplazar AfiliadoEventPublisher.java
-
-Copiar: `evolution/afiliado-service/AfiliadoEventPublisher.java`
-
-**Cambios clave:**
-- Inyecta `KafkaTemplate<String, AfiliadoEvent>`
-- Usa `ListenableFuture` con callback para logging
-- DNI como key para garantizar orden por afiliado
+### Conceptos Clave
+- **Particiones**: Permiten paralelismo. Con 3 particiones, hasta 3 consumidores del mismo grupo pueden procesar en paralelo.
+- **Key del mensaje**: Usar DNI como key garantiza que todos los eventos del mismo afiliado van a la misma partición (orden garantizado).
 
 ---
 
-## Paso 2: notificacion-service (Consumer)
+## Ejercicio 2: Publicación de Eventos "AfiliadoCreado"
 
-### 2.1 Actualizar pom.xml
+### Objetivo
+Implementar el productor que publica eventos cuando se crea un afiliado.
 
-Descomentar Kafka y añadir Lombok.
+### Archivos a Modificar
 
-### 2.2 Actualizar application.yml
+#### `afiliado-service/.../service/AfiliadoEventPublisher.java`
+
+Descomentar e implementar:
+
+```java
+private final KafkaTemplate<String, AfiliadoEvent> kafkaTemplate;
+
+@Value("${app.kafka.topic.afiliado-eventos}")
+private String topic;
+
+public void publishAfiliadoCreated(String dni, String nombre, String apellidos, 
+                                    String email, String empresaId) {
+    String afiliadoId = UUID.randomUUID().toString();
+    
+    AfiliadoEvent event = AfiliadoEvent.builder()
+            .eventId(UUID.randomUUID().toString())
+            .eventType("AFILIADO_CREATED")
+            .timestamp(LocalDateTime.now())
+            .payload(AfiliadoEvent.AfiliadoPayload.builder()
+                    .afiliadoId(afiliadoId)
+                    .dni(dni)
+                    .nombre(nombre)
+                    .apellidos(apellidos)
+                    .email(email)
+                    .empresaId(empresaId)
+                    .build())
+            .build();
+
+    // DNI como key = orden garantizado por afiliado
+    ListenableFuture<SendResult<String, AfiliadoEvent>> future = 
+        kafkaTemplate.send(topic, dni, event);
+
+    future.addCallback(new ListenableFutureCallback<>() {
+        @Override
+        public void onSuccess(SendResult<String, AfiliadoEvent> result) {
+            log.info("Evento publicado: partition={}, offset={}", 
+                result.getRecordMetadata().partition(),
+                result.getRecordMetadata().offset());
+        }
+        @Override
+        public void onFailure(Throwable ex) {
+            log.error("Error publicando evento: {}", ex.getMessage());
+        }
+    });
+}
+```
+
+### Conceptos Clave
+- **KafkaTemplate**: Cliente de alto nivel para enviar mensajes.
+- **Callback asíncrono**: Permite manejar éxito/error sin bloquear.
+- **acks=all**: Garantiza que el mensaje se replicó antes de confirmar.
+
+---
+
+## Ejercicio 3: Consumo en Notificación Service
+
+### Objetivo
+Implementar un consumidor que envía notificaciones cuando recibe eventos de afiliados.
+
+### Archivos a Modificar
+
+#### 1. `notificacion-service/src/main/resources/application.yml`
+
+Descomentar configuración del consumidor:
 
 ```yaml
-server:
-  port: 8082
-
 spring:
-  application:
-    name: notificacion-service
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -129,6 +173,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.mutualidad.notificacion.event.AfiliadoEvent
 
 app:
   kafka:
@@ -136,49 +181,108 @@ app:
       afiliado-eventos: afiliado-eventos
 ```
 
-### 2.3 Añadir AfiliadoEvent.java
+#### 2. `notificacion-service/.../service/AfiliadoEventConsumer.java`
 
-Copiar: `evolution/notificacion-service/AfiliadoEvent.java`
+Implementar el listener:
 
-**Ubicación destino:** `src/main/java/com/mutualidad/notificacion/event/`
+```java
+@KafkaListener(
+    topics = "${app.kafka.topic.afiliado-eventos}",
+    groupId = "${spring.kafka.consumer.group-id}"
+)
+public void handleAfiliadoEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+    AfiliadoEvent event = record.value();
+    
+    log.info("=== NOTIFICACION-SERVICE: Evento recibido ===");
+    log.info("Topic: {}, Partition: {}, Offset: {}", 
+        record.topic(), record.partition(), record.offset());
+    
+    sendNotification(event);
+}
 
-> Nota: Es una copia del DTO del producer para deserializar mensajes.
+private void sendNotification(AfiliadoEvent event) {
+    switch (event.getEventType()) {
+        case "AFILIADO_CREATED":
+            log.info("[EMAIL] Enviando bienvenida a {}", event.getPayload().getEmail());
+            log.info("[SMS] Notificando alta DNI: {}", event.getPayload().getDni());
+            break;
+        case "AFILIADO_UPDATED":
+            log.info("[EMAIL] Notificando actualización a {}", event.getPayload().getEmail());
+            break;
+    }
+}
+```
 
-### 2.4 Reemplazar AfiliadoEventConsumer.java
-
-Copiar: `evolution/notificacion-service/AfiliadoEventConsumer.java`
-
-**Cambios clave:**
-- `@KafkaListener` con topic y groupId desde config
-- Recibe `ConsumerRecord<String, AfiliadoEvent>`
-- Método `sendNotification()` con switch por eventType
+### Conceptos Clave
+- **Consumer Group**: `notificacion-group` - solo una instancia del grupo procesa cada mensaje.
+- **auto-offset-reset=earliest**: Lee desde el inicio si no hay offset guardado.
+- **@KafkaListener**: Anotación que convierte el método en consumidor.
 
 ---
 
-## Paso 3: validacion-service (Consumer + DLQ)
+## Ejercicio 4: Consumo en Validación Service
 
-### 3.1 Actualizar pom.xml
+### Objetivo
+Implementar un consumidor que valida los datos del afiliado. Este consumidor puede fallar, preparando el escenario para el DLQ.
 
-Descomentar Kafka y añadir Lombok.
+### Archivos a Modificar
 
-### 3.2 Actualizar application.yml
+#### 1. `validacion-service/src/main/resources/application.yml`
+
+Descomentar configuración (similar a notificacion-service pero con `group-id: validacion-group`).
+
+#### 2. `validacion-service/.../service/AfiliadoValidationConsumer.java`
+
+Implementar el listener con validación que puede fallar:
+
+```java
+@KafkaListener(
+    topics = "${app.kafka.topic.afiliado-eventos}",
+    groupId = "${spring.kafka.consumer.group-id}"
+)
+public void handleAfiliadoEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+    AfiliadoEvent event = record.value();
+    
+    log.info("=== VALIDACION-SERVICE: Evento recibido ===");
+    validateAfiliado(event);
+}
+
+private void validateAfiliado(AfiliadoEvent event) {
+    String dni = event.getPayload().getDni();
+    
+    // Simular fallo para DNIs que empiezan con "FAIL"
+    if (dni != null && dni.startsWith("FAIL")) {
+        log.error("Validacion fallida para DNI: {}", dni);
+        throw new RuntimeException("DNI invalido: " + dni);
+    }
+    
+    log.info("[VALIDACION OK] Afiliado validado: DNI={}", dni);
+}
+```
+
+### Conceptos Clave
+- **Consumer Groups independientes**: `validacion-group` recibe los mismos mensajes que `notificacion-group`.
+- **Excepciones**: Lanzar excepción marca el mensaje como fallido.
+
+---
+
+## Ejercicio 5: Manejo de Errores con DLQ
+
+### Objetivo
+Configurar Dead Letter Queue para mensajes que fallan después de reintentos.
+
+### Archivos a Modificar
+
+#### 1. `validacion-service/src/main/resources/application.yml`
+
+Añadir configuración del productor (necesario para enviar a DLT):
 
 ```yaml
-server:
-  port: 8083
-
 spring:
-  application:
-    name: validacion-service
   kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: validacion-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 app:
   kafka:
@@ -187,84 +291,114 @@ app:
       afiliado-eventos-dlt: afiliado-eventos.dlt
 ```
 
-### 3.3 Añadir AfiliadoEvent.java
+#### 2. `validacion-service/.../config/KafkaConfig.java`
 
-Copiar: `evolution/validacion-service/AfiliadoEvent.java`
+Implementar el error handler:
 
-**Ubicación destino:** `src/main/java/com/mutualidad/validacion/event/`
+```java
+@Value("${app.kafka.topic.afiliado-eventos-dlt}")
+private String dltTopic;
 
-### 3.4 Reemplazar KafkaConfig.java
+@Bean
+public NewTopic dltTopic() {
+    return TopicBuilder.name(dltTopic)
+            .partitions(1)
+            .replicas(1)
+            .build();
+}
 
-Copiar: `evolution/validacion-service/KafkaConfig.java`
+@Bean
+public DefaultErrorHandler errorHandler(KafkaTemplate<String, AfiliadoEvent> kafkaTemplate) {
+    // Recuperador que envía mensajes fallidos al DLT
+    DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
+        (record, ex) -> {
+            log.error("Enviando a DLT: key={}, error={}", record.key(), ex.getMessage());
+            return new org.apache.kafka.common.TopicPartition(dltTopic, 0);
+        });
 
-**Cambios clave:**
-- Crea topic DLT (Dead Letter Topic)
-- Configura `DefaultErrorHandler` con `DeadLetterPublishingRecoverer`
-- 3 reintentos con 1s de intervalo
-- Log de cada reintento
+    // 3 reintentos con 1 segundo entre cada uno
+    DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, 
+        new FixedBackOff(1000L, 3));
+    
+    // Log de cada reintento
+    errorHandler.setRetryListeners((record, ex, deliveryAttempt) -> {
+        log.warn("Reintento {} de 3: key={}", deliveryAttempt, 
+            ((ConsumerRecord<?, ?>)record).key());
+    });
 
-### 3.5 Reemplazar AfiliadoValidationConsumer.java
+    return errorHandler;
+}
+```
 
-Copiar: `evolution/validacion-service/AfiliadoValidationConsumer.java`
+#### 3. `validacion-service/.../service/AfiliadoValidationConsumer.java`
 
-**Cambios clave:**
-- Valida DNI (simula error si empieza con "FAIL")
-- Lanza `RuntimeException` para activar reintentos
-- Segundo `@KafkaListener` para DLT
+Añadir consumidor del DLT:
+
+```java
+@KafkaListener(
+    topics = "${app.kafka.topic.afiliado-eventos-dlt}",
+    groupId = "validacion-dlt-group"
+)
+public void handleDltEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+    AfiliadoEvent event = record.value();
+    
+    log.warn("=== DLT: Mensaje fallido recibido ===");
+    log.warn("EventId: {}, DNI: {}", event.getEventId(), event.getPayload().getDni());
+    log.warn("Requiere intervención manual o reprocesamiento");
+}
+```
+
+### Conceptos Clave
+- **Dead Letter Topic (DLT)**: Almacena mensajes que no pudieron procesarse.
+- **FixedBackOff**: Estrategia de reintentos con intervalo fijo.
+- **DeadLetterPublishingRecoverer**: Envía automáticamente al DLT después de agotar reintentos.
 
 ---
 
-## Resumen de Cambios
+## Resumen de Cambios por Servicio
 
-| Servicio | Archivo | Cambio Principal |
-|----------|---------|------------------|
-| afiliado | pom.xml | +kafka, +lombok |
-| afiliado | application.yml | +kafka producer config |
-| afiliado | AfiliadoEvent.java | Clase completa con Lombok |
-| afiliado | KafkaConfig.java | TopicBuilder para crear topic |
-| afiliado | AfiliadoEventPublisher.java | KafkaTemplate + callbacks |
-| notificacion | pom.xml | +kafka, +lombok |
-| notificacion | application.yml | +kafka consumer config |
-| notificacion | AfiliadoEvent.java | Copia del DTO |
-| notificacion | AfiliadoEventConsumer.java | @KafkaListener completo |
-| validacion | pom.xml | +kafka, +lombok |
-| validacion | application.yml | +kafka + DLT config |
-| validacion | AfiliadoEvent.java | Copia del DTO |
-| validacion | KafkaConfig.java | DLQ con error handler |
-| validacion | AfiliadoValidationConsumer.java | Validación + DLT listener |
+| Servicio | Ejercicio | Archivos Modificados |
+|----------|-----------|---------------------|
+| afiliado-service | 1, 2 | `application.yml`, `KafkaConfig.java`, `AfiliadoEventPublisher.java` |
+| notificacion-service | 3 | `application.yml`, `AfiliadoEventConsumer.java` |
+| validacion-service | 4, 5 | `application.yml`, `KafkaConfig.java`, `AfiliadoValidationConsumer.java` |
 
 ---
 
-## Verificación
+## Pruebas
 
-### 1. Levantar Kafka
+### Iniciar Kafka (Docker)
 ```bash
-cd mutualidad-platform-base
 docker-compose up -d
 ```
 
-### 2. Compilar y ejecutar servicios
+### Probar publicación de evento
 ```bash
-# Terminal 1
-cd afiliado-service && mvn spring-boot:run
-
-# Terminal 2
-cd notificacion-service && mvn spring-boot:run
-
-# Terminal 3
-cd validacion-service && mvn spring-boot:run
+curl -X POST http://localhost:8081/api/afiliados \
+  -H "Content-Type: application/json" \
+  -d '{"dni":"12345678A","nombre":"Juan","apellidos":"García","email":"juan@test.com"}'
 ```
 
-### 3. Probar flujo normal
+### Probar DLQ (DNI que falla validación)
 ```bash
-curl -X POST "http://localhost:8081/api/afiliados?dni=12345678A&nombre=Juan&apellidos=Garcia&email=juan@test.com&empresaId=EMP001"
+curl -X POST http://localhost:8081/api/afiliados \
+  -H "Content-Type: application/json" \
+  -d '{"dni":"FAIL123","nombre":"Test","apellidos":"Error","email":"fail@test.com"}'
 ```
 
-### 4. Probar DLQ (DNI inválido)
-```bash
-curl -X POST "http://localhost:8081/api/afiliados?dni=FAIL123&nombre=Test&apellidos=Error&email=fail@test.com&empresaId=EMP001"
-```
+### Verificar logs
+- notificacion-service: Debería mostrar envío de email/SMS
+- validacion-service: Debería mostrar 3 reintentos y envío a DLT
 
-Verificar en Kafdrop (http://localhost:9000):
-- Topic `afiliado-eventos` tiene el mensaje
-- Topic `afiliado-eventos.dlt` tiene el mensaje fallido
+---
+
+## Dependencias Maven
+
+Asegurarse de tener en cada `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+```

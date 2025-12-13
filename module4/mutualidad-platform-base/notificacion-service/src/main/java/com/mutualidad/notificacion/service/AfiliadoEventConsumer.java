@@ -1,55 +1,77 @@
 package com.mutualidad.notificacion.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mutualidad.notificacion.event.AfiliadoEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-// TODO: Importar anotaciones de Kafka
-// import org.springframework.kafka.annotation.KafkaListener;
-
-/**
- * Consumer de eventos de afiliado para enviar notificaciones.
- * 
- * Responsabilidades:
- * 1. Escuchar el topic "afiliado-eventos"
- * 2. Procesar eventos según su tipo
- * 3. Simular envío de email/SMS
- */
+@Slf4j
 @Service
 public class AfiliadoEventConsumer {
 
-    private static final Logger log = LoggerFactory.getLogger(AfiliadoEventConsumer.class);
-
     /**
-     * TODO: Implementar listener de Kafka
+     * TODO Ejercicio 3: Implementar consumidor de eventos de afiliado
      * 
      * Pasos:
-     * 1. Añadir @KafkaListener con topic y groupId
-     * 2. Deserializar el evento (puede ser String JSON)
-     * 3. Procesar según eventType
+     * 1. Anotar el metodo con @KafkaListener configurando:
+     *    - topics: "${app.kafka.topic.afiliado-eventos}"
+     *    - groupId: "${spring.kafka.consumer.group-id}"
      * 
-     * Ejemplo de anotación:
-     * @KafkaListener(topics = "afiliado-eventos", groupId = "notificacion-group")
+     * 2. El metodo recibe ConsumerRecord<String, AfiliadoEvent>
      * 
-     * @param eventJson El mensaje recibido como JSON String
+     * 3. Extraer el evento del record con record.value()
+     * 
+     * 4. Loguear informacion del mensaje:
+     *    - Topic, Partition, Offset
+     *    - EventId, EventType
+     *    - Payload
+     * 
+     * 5. Procesar el evento segun su tipo (AFILIADO_CREATED, AFILIADO_UPDATED)
      */
-    // @KafkaListener(topics = "afiliado-eventos", groupId = "notificacion-group")
-    public void handleAfiliadoEvent(String eventJson) {
-        log.info("=== NOTIFICACION-SERVICE: Evento recibido ===");
-        log.info("Payload: {}", eventJson);
+    // @KafkaListener(
+    //     topics = "${app.kafka.topic.afiliado-eventos}",
+    //     groupId = "${spring.kafka.consumer.group-id}"
+    // )
+    public void handleAfiliadoEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+        // TODO: Implementar
+        log.info("TODO: Procesar evento de afiliado");
         
-        // TODO: Parsear el JSON y extraer datos
-        // ObjectMapper mapper = new ObjectMapper();
-        // AfiliadoEvent event = mapper.readValue(eventJson, AfiliadoEvent.class);
-        
-        // TODO: Procesar según tipo de evento
-        if (eventJson.contains("AFILIADO_CREATED")) {
-            log.info("[EMAIL] Enviando bienvenida al nuevo afiliado");
-            log.info("[SMS] Notificando alta en el sistema");
-        } else if (eventJson.contains("AFILIADO_UPDATED")) {
-            log.info("[EMAIL] Confirmando actualización de datos");
-        } else if (eventJson.contains("AFILIADO_DELETED")) {
-            log.info("[EMAIL] Confirmando baja del sistema");
-        }
+        // Ejemplo de implementacion:
+        // AfiliadoEvent event = record.value();
+        // 
+        // log.info("=== NOTIFICACION-SERVICE: Evento recibido ===");
+        // log.info("Topic: {}, Partition: {}, Offset: {}", 
+        //     record.topic(), record.partition(), record.offset());
+        // log.info("EventId: {}, EventType: {}", event.getEventId(), event.getEventType());
+        // 
+        // sendNotification(event);
+    }
+
+    /**
+     * TODO Ejercicio 3: Implementar logica de envio de notificaciones
+     * 
+     * Segun el tipo de evento:
+     * - AFILIADO_CREATED: Enviar email de bienvenida + SMS
+     * - AFILIADO_UPDATED: Enviar email de confirmacion de cambios
+     */
+    private void sendNotification(AfiliadoEvent event) {
+        // TODO: Implementar
+        // String eventType = event.getEventType();
+        // AfiliadoEvent.AfiliadoPayload payload = event.getPayload();
+        // 
+        // switch (eventType) {
+        //     case "AFILIADO_CREATED":
+        //         log.info("[EMAIL] Enviando bienvenida a {} - {}", 
+        //             payload.getNombre() + " " + payload.getApellidos(), 
+        //             payload.getEmail());
+        //         log.info("[SMS] Notificando alta de afiliado DNI: {}", payload.getDni());
+        //         break;
+        //     case "AFILIADO_UPDATED":
+        //         log.info("[EMAIL] Notificando actualizacion de datos a {}", payload.getEmail());
+        //         break;
+        //     default:
+        //         log.warn("Tipo de evento no reconocido: {}", eventType);
+        // }
     }
 }

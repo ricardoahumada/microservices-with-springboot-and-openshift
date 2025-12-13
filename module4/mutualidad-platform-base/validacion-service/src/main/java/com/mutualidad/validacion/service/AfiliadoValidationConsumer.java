@@ -1,60 +1,85 @@
 package com.mutualidad.validacion.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mutualidad.validacion.event.AfiliadoEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-// TODO: Importar anotaciones de Kafka
-// import org.springframework.kafka.annotation.KafkaListener;
-
-/**
- * Consumer de eventos para validar afiliados.
- * 
- * Funcionalidades:
- * 1. Validar datos del afiliado
- * 2. Rechazar DNIs inválidos (simular error para DLQ)
- * 3. Escuchar Dead Letter Topic para mensajes fallidos
- */
+@Slf4j
 @Service
 public class AfiliadoValidationConsumer {
 
-    private static final Logger log = LoggerFactory.getLogger(AfiliadoValidationConsumer.class);
-
     /**
-     * TODO: Implementar listener principal
+     * TODO Ejercicio 4: Implementar consumidor de eventos para validacion
      * 
-     * @KafkaListener(topics = "afiliado-eventos", groupId = "validacion-group")
+     * Similar al Ejercicio 3, pero con logica de validacion que puede fallar.
+     * Esto prepara el escenario para el Ejercicio 5 (DLQ).
+     * 
+     * Pasos:
+     * 1. Anotar con @KafkaListener
+     * 2. Extraer evento del record
+     * 3. Llamar a validateAfiliado(event)
      */
-    // @KafkaListener(topics = "afiliado-eventos", groupId = "validacion-group")
-    public void handleAfiliadoEvent(String eventJson) {
-        log.info("=== VALIDACION-SERVICE: Evento recibido ===");
-        log.info("Payload: {}", eventJson);
+    // @KafkaListener(
+    //     topics = "${app.kafka.topic.afiliado-eventos}",
+    //     groupId = "${spring.kafka.consumer.group-id}"
+    // )
+    public void handleAfiliadoEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+        // TODO: Implementar
+        log.info("TODO: Validar evento de afiliado");
         
-        // TODO: Extraer DNI del evento
-        // Simular validación: DNIs que empiezan con "FAIL" lanzan excepción
-        
-        if (eventJson.contains("\"dni\":\"FAIL")) {
-            log.error("Validacion fallida para DNI invalido");
-            // TODO: Lanzar excepción para activar reintentos y DLQ
-            // throw new RuntimeException("DNI invalido - mensaje irá a DLQ después de reintentos");
-        }
-        
-        log.info("[VALIDACION OK] Afiliado validado correctamente");
+        // Ejemplo:
+        // AfiliadoEvent event = record.value();
+        // 
+        // log.info("=== VALIDACION-SERVICE: Evento recibido ===");
+        // log.info("Topic: {}, Partition: {}, Offset: {}", 
+        //     record.topic(), record.partition(), record.offset());
+        // 
+        // validateAfiliado(event);
     }
 
     /**
-     * TODO AVANZADO: Listener para Dead Letter Topic
+     * TODO Ejercicio 4: Implementar logica de validacion
      * 
-     * Procesa mensajes que fallaron después de todos los reintentos.
-     * El topic DLT se crea automáticamente como: {topic-original}.dlt
-     * 
-     * @KafkaListener(topics = "afiliado-eventos.dlt", groupId = "validacion-dlt-group")
+     * La validacion debe fallar (lanzar excepcion) para DNIs que empiezan con "FAIL".
+     * Esto permite probar el DLQ en el Ejercicio 5.
      */
-    // @KafkaListener(topics = "afiliado-eventos.dlt", groupId = "validacion-dlt-group")
-    public void handleDeadLetterEvent(String eventJson) {
-        log.warn("=== DLT: Mensaje en Dead Letter Topic ===");
-        log.warn("Este mensaje falló después de todos los reintentos");
-        log.warn("Payload: {}", eventJson);
-        log.warn("TODO: Implementar lógica de recuperación manual o alertas");
+    private void validateAfiliado(AfiliadoEvent event) {
+        // TODO: Implementar
+        // String dni = event.getPayload().getDni();
+        // 
+        // // Simular fallo para DNIs que empiezan con "FAIL"
+        // if (dni != null && dni.startsWith("FAIL")) {
+        //     log.error("Validacion fallida para DNI: {}", dni);
+        //     throw new RuntimeException("DNI invalido: " + dni);
+        // }
+        // 
+        // log.info("[VALIDACION OK] Afiliado validado: DNI={}", dni);
+    }
+
+    /**
+     * TODO Ejercicio 5: Implementar consumidor del Dead Letter Topic (DLT)
+     * 
+     * Este metodo procesa los mensajes que fallaron despues de los reintentos.
+     * 
+     * Pasos:
+     * 1. Anotar con @KafkaListener apuntando al topic DLT
+     * 2. Loguear el mensaje fallido para revision manual
+     */
+    // @KafkaListener(
+    //     topics = "${app.kafka.topic.afiliado-eventos-dlt}",
+    //     groupId = "validacion-dlt-group"
+    // )
+    public void handleDltEvent(ConsumerRecord<String, AfiliadoEvent> record) {
+        // TODO: Implementar
+        log.warn("TODO: Procesar mensaje de DLT");
+        
+        // Ejemplo:
+        // AfiliadoEvent event = record.value();
+        // 
+        // log.warn("=== DLT: Mensaje recibido en Dead Letter Topic ===");
+        // log.warn("EventId: {}, DNI: {}", event.getEventId(), event.getPayload().getDni());
+        // log.warn("Este mensaje requiere intervencion manual");
     }
 }

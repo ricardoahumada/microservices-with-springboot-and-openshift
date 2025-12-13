@@ -4,12 +4,25 @@ server:
 spring:
   application:
     name: notificacion-service
-
-  # TODO: Descomentar y configurar Kafka Consumer
+  # TODO Ejercicio 3: Configurar consumidor Kafka
   # kafka:
   #   bootstrap-servers: localhost:9092
   #   consumer:
   #     group-id: notificacion-group
   #     auto-offset-reset: earliest
   #     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  #     value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  #     value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  #     properties:
+  #       spring.json.trusted.packages: "*"
+  #       spring.json.value.default.type: com.mutualidad.notificacion.event.AfiliadoEvent
+
+# TODO Ejercicio 3: Configurar nombre del topic a consumir
+# app:
+#   kafka:
+#     topic:
+#       afiliado-eventos: afiliado-eventos
+
+logging:
+  level:
+    com.mutualidad: DEBUG
+    org.springframework.kafka: INFO
