@@ -23,16 +23,33 @@ En DDD, cada **Aggregate** es un límite de consistencia. No debes **embedar** e
 ### **Ejemplo: Normalizado (Alineado con DDD)**
 
 ```java
-public class Order : AggregateRoot
+public class Order extends AggregateRoot
 {
-    public OrderId Id { get; }
-    public CustomerId CustomerId { get; } // ← Solo referencia por ID
-    public Address ShippingAddress { get; } // ← Value Object — OK para embedar
-    public DateTime OrderDate { get; }
-    public List<OrderItem> Items { get; }
+    private final OrderId id;
+    private final CustomerId customerId; // ← Solo referencia por ID
+    private final Address shippingAddress; // ← Value Object — OK para embedar
+    private final LocalDateTime orderDate;
+    private final List<OrderItem> items;
     
     // Lógica de negocio encapsulada aquí
-    public void Cancel() { ... }
+    public void cancel() { ... }
+    
+    // Constructor
+    public Order(OrderId id, CustomerId customerId, Address shippingAddress, 
+                 LocalDateTime orderDate, List<OrderItem> items) {
+        this.id = id;
+        this.customerId = customerId;
+        this.shippingAddress = shippingAddress;
+        this.orderDate = orderDate;
+        this.items = items;
+    }
+    
+    // Getters
+    public OrderId getId() { return id; }
+    public CustomerId getCustomerId() { return customerId; }
+    public Address getShippingAddress() { return shippingAddress; }
+    public LocalDateTime getOrderDate() { return orderDate; }
+    public List<OrderItem> getItems() { return items; }
 }
 ```
 
@@ -53,9 +70,19 @@ public class Order : AggregateRoot
 ```java
 public class Order 
 {
-    public CustomerId CustomerId { get; }
-    public string CustomerName { get; } // ← ¡Viola el límite!
-    public decimal CustomerCreditLimit { get; } // ← ¡Ahora tienes que sincronizar esto!
+    private final CustomerId customerId;
+    private String customerName; // ← ¡Viola el límite!
+    private BigDecimal customerCreditLimit; // ← ¡Ahora tienes que sincronizar esto!
+    
+    public Order(CustomerId customerId, String customerName, BigDecimal customerCreditLimit) {
+        this.customerId = customerId;
+        this.customerName = customerName;
+        this.customerCreditLimit = customerCreditLimit;
+    }
+    
+    public CustomerId getCustomerId() { return customerId; }
+    public String getCustomerName() { return customerName; }
+    public BigDecimal getCustomerCreditLimit() { return customerCreditLimit; }
 }
 ```
 
@@ -73,13 +100,24 @@ DDD **permite** e incluso **alienta** la desnormalización — **pero solo cuand
 ### **Ejemplo 1: Desnormalizando Value Objects (Seguro y Común)**
 
 ```java
-public class Order: AggregateRoot
+public class Order extends AggregateRoot
 {
-    public OrderId Id { get; }
-    public Address ShippingAddress { get; } // ← Value Object Inmutable — seguro de copiar
-    public Money Total { get; } // ← Snapshot del total al checkout
+    private final OrderId id;
+    private final Address shippingAddress; // ← Value Object Inmutable — seguro de copiar
+    private final Money total; // ← Snapshot del total al checkout
+    
+    public Order(OrderId id, Address shippingAddress, Money total) {
+        this.id = id;
+        this.shippingAddress = shippingAddress;
+        this.total = total;
+    }
+    
+    public OrderId getId() { return id; }
+    public Address getShippingAddress() { return shippingAddress; }
+    public Money getTotal() { return total; }
 }
 ```
+
 - **Address** y **Money** son **Value Objects** — inmutables, definidos por sus atributos. Seguros de embedar.
 - Incluso si el cliente luego cambia su dirección, las órdenes pasadas deben retener la dirección *al momento de la orden* — esta es una **regla de negocio**, no una optimización técnica.
 
@@ -90,11 +128,38 @@ public class Order: AggregateRoot
 ```java
 public class OrderSummary
 {
-    public string OrderNumber { get; set; }
-    public string CustomerName { get; set; } // ← Copiado del Customer BC
-    public string ShippingAddress { get; set; }
-    public decimal Total { get; set; }
-    public string Status { get; set; }
+    private String orderNumber;
+    private String customerName; // ← Copiado del Customer BC
+    private String shippingAddress;
+    private BigDecimal total;
+    private String status;
+    
+    public OrderSummary() {}
+    
+    public OrderSummary(String orderNumber, String customerName, String shippingAddress, 
+                       BigDecimal total, String status) {
+        this.orderNumber = orderNumber;
+        this.customerName = customerName;
+        this.shippingAddress = shippingAddress;
+        this.total = total;
+        this.status = status;
+    }
+    
+    // Getters and Setters
+    public String getOrderNumber() { return orderNumber; }
+    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }
+    
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+    
+    public String getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+    
+    public BigDecimal getTotal() { return total; }
+    public void setTotal(BigDecimal total) { this.total = total; }
+    
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
 ```
 
@@ -106,17 +171,26 @@ public class OrderSummary
 *// En "Order Fulfillment" Bounded Context*
 
 ```java
-public class Shipment: AggregateRoot
+public class Shipment extends AggregateRoot
 {
-    public OrderId OrderId { get; }
-    public string CustomerName { get; private set; } // ← Copiado vía evento
-    public Address ShippingAddress { get; } // ← Copiado al momento del envío
+    private final OrderId orderId;
+    private String customerName; // ← Copiado vía evento
+    private final Address shippingAddress; // ← Copiado al momento del envío
     
-    public void Apply(OrderPlacedEvent e)
-    {
-        CustomerName = e.CustomerName; // ← Copia desnormalizada
-        ShippingAddress = e.ShippingAddress;
+    public Shipment(OrderId orderId, String customerName, Address shippingAddress) {
+        this.orderId = orderId;
+        this.customerName = customerName;
+        this.shippingAddress = shippingAddress;
     }
+    
+    public void apply(OrderPlacedEvent e) {
+        this.customerName = e.getCustomerName(); // ← Copia desnormalizada
+        this.shippingAddress = e.getShippingAddress();
+    }
+    
+    public OrderId getOrderId() { return orderId; }
+    public String getCustomerName() { return customerName; }
+    public Address getShippingAddress() { return shippingAddress; }
 }
 ```
 
