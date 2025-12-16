@@ -336,8 +336,6 @@ public class BusinessException extends RuntimeException {
 }
 ```
 
-**Por que:** Circuit Breaker debe ignorar excepciones de negocio (no son fallos de infraestructura).
-
 ---
 
 ### Paso 2.3: Configurar Resilience4j (`application.yml`)
