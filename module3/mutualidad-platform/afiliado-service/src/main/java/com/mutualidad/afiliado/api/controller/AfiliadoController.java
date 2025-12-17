@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -25,7 +26,14 @@ public class AfiliadoController {
     private final AfiliadoService afiliadoService;
 
     @PostMapping
-    public ResponseEntity<AfiliadoResponse> crear(@Valid @RequestBody AfiliadoRequest request) {
+    public ResponseEntity<AfiliadoResponse> crear(
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody AfiliadoRequest request) {
+        
+        if (idempotencyKey == null || idempotencyKey.isEmpty()) {
+            idempotencyKey = UUID.randomUUID().toString();
+        }
+        
         Afiliado afiliado = Afiliado.builder()
                 .dni(DNI.of(request.getDni()))
                 .nombre(request.getNombre())
@@ -35,7 +43,7 @@ public class AfiliadoController {
                 .telefono(request.getTelefono())
                 .build();
 
-        Afiliado creado = afiliadoService.crear(afiliado);
+        Afiliado creado = afiliadoService.crear(idempotencyKey, afiliado);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(AfiliadoResponse.fromEntity(creado));
     }

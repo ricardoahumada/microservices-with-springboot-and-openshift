@@ -31,17 +31,7 @@ server:
   servlet:
     context-path: /api/v1
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-
-logging:
-  level:
-    com.mutualidad: DEBUG
-    org.hibernate.SQL: DEBUG
-
+# URLs de servicios externos
 services:
   validacion:
     url: http://localhost:8084
@@ -49,3 +39,65 @@ services:
     url: http://localhost:8082
   notificacion:
     url: http://localhost:8083
+
+# Configuracion de Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      validacionService:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        ignoreExceptions:
+          - com.mutualidad.afiliado.domain.exception.BusinessException
+      beneficioService:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+      notificacionService:
+        slidingWindowSize: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 60s
+
+  retry:
+    instances:
+      validacionService:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - feign.FeignException$ServiceUnavailable
+
+  timelimiter:
+    instances:
+      validacionService:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+
+# Configuracion de Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers,retries,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+logging:
+  level:
+    com.mutualidad: DEBUG
+    org.hibernate.SQL: DEBUG
+    io.github.resilience4j: DEBUG
+
+feign:
+  circuitbreaker:
+    enabled: true
