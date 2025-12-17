@@ -1,136 +1,140 @@
 package com.mutualidad.validacion.api.controller;
 
-import com.mutualidad.validacion.api.dto.ValidacionRequest;
-import com.mutualidad.validacion.api.dto.ValidacionResponse;
-import com.mutualidad.validacion.api.dto.ValidarAfiliadoRequest;
-import com.mutualidad.validacion.api.dto.ValidarAfiliadoResponse;
-import com.mutualidad.validacion.application.service.ValidacionService;
-import com.mutualidad.validacion.domain.model.ResultadoValidacion;
-import com.mutualidad.validacion.domain.model.TipoValidacion;
-import com.mutualidad.validacion.domain.model.ValidacionExterna;
-import lombok.RequiredArgsConstructor;
+import com.mutualidad.validacion.api.dto.ValidacionEstadoLaboralRequest;
+import com.mutualidad.validacion.api.dto.ValidacionEstadoLaboralResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 @RestController
-@RequestMapping("/validaciones")
-@RequiredArgsConstructor
-@Validated
+@RequestMapping("/api/validaciones")
 public class ValidacionController {
 
-    private final ValidacionService validacionService;
+    private final AtomicInteger requestCounter = new AtomicInteger(0);
 
-    @PostMapping
-    public ResponseEntity<ValidacionResponse> crear(@Valid @RequestBody ValidacionRequest request) {
-        ValidacionExterna creada = validacionService.crear(
-                request.getAfiliadoId(),
-                request.getTipo(),
-                request.getDatosEnviados());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ValidacionResponse.fromEntity(creada));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<ValidacionResponse> buscarPorId(@PathVariable Long id) {
-        return validacionService.buscarPorId(id)
-                .map(v -> ResponseEntity.ok(ValidacionResponse.fromEntity(v)))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping
-    public ResponseEntity<List<ValidacionResponse>> listar(
-            @RequestParam(required = false) Long afiliadoId,
-            @RequestParam(required = false) ResultadoValidacion resultado,
-            @RequestParam(required = false) TipoValidacion tipo) {
+    /**
+     * Endpoint de validacion de estado laboral con simulacion de fallos.
+     * 
+     * @param request Datos de validacion
+     * @param simulateError Tipo de error a simular: TIMEOUT, ERROR_500, ERROR_503, SLOW, NONE
+     * @param delayMs Delay en milisegundos para simular latencia
+     */
+    @PostMapping("/estado-laboral")
+    public ResponseEntity<ValidacionEstadoLaboralResponse> validarEstadoLaboral(
+            @Valid @RequestBody ValidacionEstadoLaboralRequest request,
+            @RequestParam(value = "simulateError", defaultValue = "NONE") String simulateError,
+            @RequestParam(value = "delayMs", defaultValue = "0") long delayMs) {
         
-        List<ValidacionExterna> validaciones;
-        if (afiliadoId != null) {
-            validaciones = validacionService.buscarPorAfiliado(afiliadoId);
-        } else if (resultado != null) {
-            validaciones = validacionService.buscarPorResultado(resultado);
-        } else if (tipo != null) {
-            validaciones = validacionService.buscarPorTipo(tipo);
-        } else {
-            validaciones = validacionService.buscarPorResultado(ResultadoValidacion.PENDIENTE);
+        int requestNum = requestCounter.incrementAndGet();
+        String correlationId = getCorrelationId();
+        
+        log.info("[{}] Request #{}: Validando estado laboral para DNI: {}, Empresa: {}, SimulateError: {}",
+                correlationId, requestNum, request.getDni(), request.getEmpresaId(), simulateError);
+
+        // Simular delay si se especifica
+        if (delayMs > 0) {
+            simulateDelay(delayMs);
         }
-        
-        List<ValidacionResponse> response = validaciones.stream()
-                .map(ValidacionResponse::fromEntity)
-                .collect(Collectors.toList());
-        
+
+        // Simular diferentes tipos de errores
+        switch (simulateError.toUpperCase()) {
+            case "TIMEOUT":
+                log.warn("[{}] Simulando TIMEOUT (10 segundos)", correlationId);
+                simulateDelay(10000);
+                break;
+            case "ERROR_500":
+                log.error("[{}] Simulando ERROR 500", correlationId);
+                throw new RuntimeException("Error interno simulado");
+            case "ERROR_503":
+                log.error("[{}] Simulando ERROR 503 - Service Unavailable", correlationId);
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(ValidacionEstadoLaboralResponse.builder()
+                                .valido(false)
+                                .estado("ERROR")
+                                .mensaje("Servicio temporalmente no disponible")
+                                .build());
+            case "ERROR_400":
+                log.warn("[{}] Simulando ERROR 400 - Bad Request", correlationId);
+                return ResponseEntity.badRequest()
+                        .body(ValidacionEstadoLaboralResponse.builder()
+                                .valido(false)
+                                .estado("ERROR")
+                                .mensaje("Solicitud invalida")
+                                .build());
+            case "SLOW":
+                log.info("[{}] Simulando respuesta LENTA (3 segundos)", correlationId);
+                simulateDelay(3000);
+                break;
+            case "INTERMITTENT":
+                // Falla cada 3 requests
+                if (requestNum % 3 == 0) {
+                    log.error("[{}] Simulando fallo INTERMITENTE (request #{})", correlationId, requestNum);
+                    throw new RuntimeException("Error intermitente simulado");
+                }
+                break;
+            case "NONE":
+            default:
+                // Respuesta normal
+                break;
+        }
+
+        // Respuesta exitosa
+        ValidacionEstadoLaboralResponse response = ValidacionEstadoLaboralResponse.builder()
+                .valido(true)
+                .estado("ACTIVO")
+                .mensaje("Estado laboral verificado correctamente")
+                .dni(request.getDni())
+                .empresaId(request.getEmpresaId())
+                .build();
+
+        log.info("[{}] Validacion completada exitosamente para DNI: {}", correlationId, request.getDni());
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/vigente")
-    public ResponseEntity<ValidacionResponse> buscarVigente(
-            @RequestParam Long afiliadoId,
-            @RequestParam TipoValidacion tipo) {
-        return validacionService.buscarValidacionVigente(afiliadoId, tipo)
-                .map(v -> ResponseEntity.ok(ValidacionResponse.fromEntity(v)))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/{id}/iniciar")
-    public ResponseEntity<ValidacionResponse> iniciarProceso(
-            @PathVariable Long id,
-            @RequestParam String proveedor,
-            @RequestParam String referencia) {
-        ValidacionExterna iniciada = validacionService.iniciarProceso(id, proveedor, referencia);
-        return ResponseEntity.ok(ValidacionResponse.fromEntity(iniciada));
-    }
-
-    @PostMapping("/{id}/aprobar")
-    public ResponseEntity<ValidacionResponse> aprobar(
-            @PathVariable Long id,
-            @RequestParam Integer puntuacion,
-            @RequestParam String mensaje) {
-        ValidacionExterna aprobada = validacionService.aprobar(id, puntuacion, mensaje, null);
-        return ResponseEntity.ok(ValidacionResponse.fromEntity(aprobada));
-    }
-
-    @PostMapping("/{id}/rechazar")
-    public ResponseEntity<ValidacionResponse> rechazar(
-            @PathVariable Long id,
-            @RequestParam String mensaje) {
-        ValidacionExterna rechazada = validacionService.rechazar(id, mensaje, null);
-        return ResponseEntity.ok(ValidacionResponse.fromEntity(rechazada));
+    /**
+     * Endpoint para resetear el contador de requests (util para pruebas)
+     */
+    @PostMapping("/reset-counter")
+    public ResponseEntity<String> resetCounter() {
+        requestCounter.set(0);
+        log.info("Contador de requests reseteado");
+        return ResponseEntity.ok("Contador reseteado");
     }
 
     /**
-     * Endpoint para validar datos de afiliado (usado por afiliado-service)
+     * Endpoint para obtener el estado del servicio
      */
-    @PostMapping("/afiliado")
-    public ResponseEntity<ValidarAfiliadoResponse> validarAfiliado(
-            @RequestBody ValidarAfiliadoRequest request) {
-        
-        // Validacion simple de datos
-        if (request.getDni() == null || request.getDni().isBlank()) {
-            return ResponseEntity.ok(ValidarAfiliadoResponse.builder()
-                .valido(false)
-                .mensaje("DNI es obligatorio")
-                .errores(List.of("DNI_REQUIRED"))
-                .build());
+    @GetMapping("/status")
+    public ResponseEntity<String> getStatus() {
+        return ResponseEntity.ok("Validacion Service OK - Requests procesados: " + requestCounter.get());
+    }
+
+    private void simulateDelay(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        
-        if (request.getNombre() == null || request.getNombre().isBlank()) {
-            return ResponseEntity.ok(ValidarAfiliadoResponse.builder()
-                .valido(false)
-                .mensaje("Nombre es obligatorio")
-                .errores(List.of("NOMBRE_REQUIRED"))
-                .build());
-        }
-        
-        // Simulacion de validacion exitosa
-        return ResponseEntity.ok(ValidarAfiliadoResponse.builder()
-            .valido(true)
-            .mensaje("Validacion exitosa")
-            .errores(List.of())
-            .build());
+    }
+
+    private String getCorrelationId() {
+        // En produccion, se obtendria del header X-Correlation-ID
+        return "corr-" + System.currentTimeMillis();
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ValidacionEstadoLaboralResponse> handleRuntimeException(RuntimeException ex) {
+        log.error("Error en validacion: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ValidacionEstadoLaboralResponse.builder()
+                        .valido(false)
+                        .estado("ERROR")
+                        .mensaje(ex.getMessage())
+                        .build());
     }
 }

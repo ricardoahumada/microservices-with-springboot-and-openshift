@@ -1,68 +1,59 @@
 package com.mutualidad.beneficio.domain.model;
 
-import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "beneficios")
-@EntityListeners(AuditingEntityListener.class)
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Beneficio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "El nombre es obligatorio")
-    @Size(max = 100)
-    @Column(name = "nombre", nullable = false, length = 100)
-    private String nombre;
+    @Column(nullable = false)
+    private Long afiliadoId;
 
-    @Column(name = "descripcion", length = 500)
-    private String descripcion;
+    @Column(nullable = false)
+    private String tipoBeneficio; // SALUD, EDUCACION, VIVIENDA, RECREACION
 
-    @NotNull(message = "El tipo es obligatorio")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo", nullable = false)
-    private TipoBeneficio tipo;
+    @Column(nullable = false)
+    private String estado; // ACTIVO, SUSPENDIDO, REVOCADO
 
-    @NotNull(message = "El monto maximo es obligatorio")
-    @DecimalMin(value = "0.01", message = "El monto debe ser positivo")
-    @Column(name = "monto_maximo", nullable = false, precision = 10, scale = 2)
-    private BigDecimal montoMaximo;
+    private BigDecimal monto;
 
-    @Column(name = "activo")
-    @Builder.Default
-    private Boolean activo = true;
+    private LocalDate fechaInicio;
 
-    @Min(value = 0)
-    @Column(name = "dias_carencia")
-    @Builder.Default
-    private Integer diasCarencia = 0;
+    private LocalDate fechaFin;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private String observaciones;
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
 
-    @Version
-    private Long version;
+    private LocalDateTime fechaActualizacion;
 
-    public boolean estaDisponible() {
-        return Boolean.TRUE.equals(this.activo);
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+        if (estado == null) {
+            estado = "ACTIVO";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        fechaActualizacion = LocalDateTime.now();
     }
 }

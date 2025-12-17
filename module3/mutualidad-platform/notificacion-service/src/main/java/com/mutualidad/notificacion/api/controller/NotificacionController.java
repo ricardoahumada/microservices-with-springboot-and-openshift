@@ -2,96 +2,62 @@ package com.mutualidad.notificacion.api.controller;
 
 import com.mutualidad.notificacion.api.dto.NotificacionRequest;
 import com.mutualidad.notificacion.api.dto.NotificacionResponse;
-import com.mutualidad.notificacion.application.service.NotificacionService;
-import com.mutualidad.notificacion.domain.model.Canal;
-import com.mutualidad.notificacion.domain.model.Destinatario;
-import com.mutualidad.notificacion.domain.model.EstadoNotificacion;
-import com.mutualidad.notificacion.domain.model.Notificacion;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
+@Slf4j
 @RestController
-@RequestMapping("/notificaciones")
-@RequiredArgsConstructor
-@Validated
+@RequestMapping("/api/notificaciones")
 public class NotificacionController {
 
-    private final NotificacionService notificacionService;
-
     @PostMapping
-    public ResponseEntity<NotificacionResponse> crear(@Valid @RequestBody NotificacionRequest request) {
-        Destinatario destinatario = Destinatario.builder()
+    public ResponseEntity<NotificacionResponse> enviarNotificacion(
+            @Valid @RequestBody NotificacionRequest request) {
+        
+        log.info("POST /api/notificaciones - Enviando notificacion tipo {} al afiliado {}", 
+                request.getTipo(), request.getAfiliadoId());
+        
+        // Simulacion de envio de notificacion
+        NotificacionResponse response = NotificacionResponse.builder()
+                .id(UUID.randomUUID().toString())
                 .afiliadoId(request.getAfiliadoId())
-                .nombre(request.getNombreDestinatario())
-                .email(request.getEmail())
-                .telefono(request.getTelefono())
-                .build();
-
-        Notificacion notificacion = Notificacion.builder()
-                .destinatario(destinatario)
+                .tipo(request.getTipo())
                 .asunto(request.getAsunto())
-                .contenido(request.getContenido())
-                .canal(request.getCanal())
+                .estado("ENVIADO")
+                .fechaEnvio(LocalDateTime.now())
+                .mensaje("Notificacion enviada correctamente")
                 .build();
-
-        Notificacion creada = notificacionService.crear(notificacion);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(NotificacionResponse.fromEntity(creada));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<NotificacionResponse> buscarPorId(@PathVariable Long id) {
-        return notificacionService.buscarPorId(id)
-                .map(n -> ResponseEntity.ok(NotificacionResponse.fromEntity(n)))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping
-    public ResponseEntity<List<NotificacionResponse>> listar(
-            @RequestParam(required = false) String afiliadoId,
-            @RequestParam(required = false) EstadoNotificacion estado,
-            @RequestParam(required = false) Canal canal) {
         
-        List<Notificacion> notificaciones;
-        if (afiliadoId != null) {
-            notificaciones = notificacionService.buscarPorAfiliado(afiliadoId);
-        } else if (estado != null) {
-            notificaciones = notificacionService.buscarPorEstado(estado);
-        } else if (canal != null) {
-            notificaciones = notificacionService.buscarPorCanal(canal);
-        } else {
-            notificaciones = notificacionService.buscarPorEstado(EstadoNotificacion.PENDIENTE);
-        }
+        log.info("Notificacion enviada con ID: {}", response.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bienvenida/{afiliadoId}")
+    public ResponseEntity<NotificacionResponse> enviarBienvenida(
+            @PathVariable Long afiliadoId,
+            @RequestParam(defaultValue = "nuevo.afiliado@email.com") String email) {
         
-        List<NotificacionResponse> response = notificaciones.stream()
-                .map(NotificacionResponse::fromEntity)
-                .collect(Collectors.toList());
+        log.info("POST /api/notificaciones/bienvenida/{} - Enviando email de bienvenida", afiliadoId);
         
-        return ResponseEntity.ok(response);
+        NotificacionRequest request = NotificacionRequest.builder()
+                .afiliadoId(afiliadoId)
+                .tipo("EMAIL")
+                .asunto("Bienvenido a la Mutualidad")
+                .mensaje("Estimado afiliado, le damos la bienvenida a nuestra mutualidad.")
+                .destinatario(email)
+                .build();
+        
+        return enviarNotificacion(request);
     }
 
-    @PostMapping("/{id}/enviar")
-    public ResponseEntity<NotificacionResponse> enviar(@PathVariable Long id) {
-        Notificacion enviada = notificacionService.enviar(id);
-        return ResponseEntity.ok(NotificacionResponse.fromEntity(enviada));
-    }
-
-    @PostMapping("/{id}/confirmar-entrega")
-    public ResponseEntity<NotificacionResponse> confirmarEntrega(@PathVariable Long id) {
-        Notificacion entregada = notificacionService.confirmarEntrega(id);
-        return ResponseEntity.ok(NotificacionResponse.fromEntity(entregada));
-    }
-
-    @PostMapping("/{id}/confirmar-lectura")
-    public ResponseEntity<NotificacionResponse> confirmarLectura(@PathVariable Long id) {
-        Notificacion leida = notificacionService.confirmarLectura(id);
-        return ResponseEntity.ok(NotificacionResponse.fromEntity(leida));
+    @GetMapping("/status")
+    public ResponseEntity<String> getStatus() {
+        return ResponseEntity.ok("Notificacion Service OK");
     }
 }

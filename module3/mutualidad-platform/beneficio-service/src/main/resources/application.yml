@@ -1,41 +1,31 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: beneficio-service
-  
   datasource:
-    url: jdbc:h2:mem:beneficiodb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:beneficiodb
+    driver-class-name: org.h2.Driver
     username: sa
     password: 
-    driver-class-name: org.h2.Driver
-  
   h2:
     console:
       enabled: true
       path: /h2-console
-  
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-    default-property-inclusion: non_null
-
-server:
-  port: 8082
-  servlet:
-    context-path: /api/v1
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
 
 logging:
   level:

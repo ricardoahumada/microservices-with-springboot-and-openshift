@@ -1,30 +1,30 @@
 package com.mutualidad.notificacion.api.dto;
 
-import com.mutualidad.notificacion.domain.model.Canal;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class NotificacionRequest {
     
-    @NotBlank(message = "El ID del afiliado es obligatorio")
-    private String afiliadoId;
+    @NotNull(message = "ID de afiliado es requerido")
+    private Long afiliadoId;
     
-    private String nombreDestinatario;
+    @NotBlank(message = "Tipo de notificacion es requerido")
+    private String tipo; // EMAIL, SMS, PUSH
     
-    @Email
-    private String email;
-    
-    private String telefono;
-    
-    @NotBlank(message = "El asunto es obligatorio")
-    @Size(max = 200)
+    @NotBlank(message = "Asunto es requerido")
     private String asunto;
     
-    @NotBlank(message = "El contenido es obligatorio")
-    private String contenido;
+    @NotBlank(message = "Mensaje es requerido")
+    private String mensaje;
     
-    @NotNull(message = "El canal es obligatorio")
-    private Canal canal;
+    private String destinatario; // email o telefono
 }
