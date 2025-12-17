@@ -21,7 +21,7 @@ public class ValidacionServiceHealthIndicator implements HealthIndicator {
     public Health health() {
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(
-                validacionUrl + "/actuator/health", String.class);
+                validacionUrl + "/api/v1/actuator/health", String.class);
             
             if (response.getStatusCode().is2xxSuccessful()) {
                 return Health.up()
