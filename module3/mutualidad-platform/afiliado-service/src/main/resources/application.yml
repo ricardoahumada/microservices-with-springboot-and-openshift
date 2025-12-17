@@ -41,3 +41,11 @@ logging:
   level:
     com.mutualidad: DEBUG
     org.hibernate.SQL: DEBUG
+
+services:
+  validacion:
+    url: http://localhost:8084
+  beneficio:
+    url: http://localhost:8082
+  notificacion:
+    url: http://localhost:8083

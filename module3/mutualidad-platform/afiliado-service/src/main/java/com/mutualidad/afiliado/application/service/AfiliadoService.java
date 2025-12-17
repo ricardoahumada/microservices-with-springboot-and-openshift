@@ -3,6 +3,9 @@ package com.mutualidad.afiliado.application.service;
 import com.mutualidad.afiliado.domain.model.Afiliado;
 import com.mutualidad.afiliado.domain.model.DNI;
 import com.mutualidad.afiliado.domain.model.EstadoAfiliado;
+import com.mutualidad.afiliado.infrastructure.client.ValidacionServiceClient;
+import com.mutualidad.afiliado.infrastructure.client.dto.ValidacionRequest;
+import com.mutualidad.afiliado.infrastructure.client.dto.ValidacionResponse;
 import com.mutualidad.afiliado.infrastructure.persistence.AfiliadoJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,8 +20,24 @@ import java.util.Optional;
 public class AfiliadoService {
 
     private final AfiliadoJpaRepository repository;
+    private final ValidacionServiceClient validacionClient;  // NUEVO
 
     public Afiliado crear(Afiliado afiliado) {
+        // Validar con servicio externo
+        ValidacionResponse validacion = validacionClient.validarAfiliado(
+                ValidacionRequest.builder()
+                        .dni(afiliado.getDni().getValor())
+                        .nombre(afiliado.getNombre())
+                        .apellidos(afiliado.getApellidos())
+                        .build()
+        );
+
+        System.out.println("***"+validacion);
+
+        if (!validacion.isValido()) {
+            throw new IllegalArgumentException(validacion.getMensaje());
+        }
+
         if (repository.findByDni(afiliado.getDni().getValor()).isPresent()) {
             throw new IllegalArgumentException("Ya existe un afiliado con ese DNI");
         }
@@ -48,12 +67,12 @@ public class AfiliadoService {
     public Afiliado actualizar(Long id, Afiliado datosActualizados) {
         Afiliado afiliado = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Afiliado no encontrado"));
-        
+
         afiliado.setNombre(datosActualizados.getNombre());
         afiliado.setApellidos(datosActualizados.getApellidos());
         afiliado.setEmail(datosActualizados.getEmail());
         afiliado.setTelefono(datosActualizados.getTelefono());
-        
+
         return repository.save(afiliado);
     }
 

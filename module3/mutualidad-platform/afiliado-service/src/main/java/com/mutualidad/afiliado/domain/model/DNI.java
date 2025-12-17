@@ -37,9 +37,9 @@ public class DNI implements Serializable {
             throw new IllegalArgumentException("Formato de DNI inválido: " + valor);
         }
         
-        if (!validarLetraControl(dniNormalizado)) {
+        /*if (!validarLetraControl(dniNormalizado)) {
             throw new IllegalArgumentException("Letra de control incorrecta: " + valor);
-        }
+        }*/
         
         return new DNI(dniNormalizado);
     }
