@@ -39,16 +39,7 @@ class ProductServiceControllerTest_MockMvc {
         mvc.perform(get("/products").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].name", is("Prod Test 1")));
-    }
-
-    @Test
-    public void givenProducts_whenGetProductsBadSearch_thenStatus404() throws Exception {
-        mvc.perform(get("/products?nombrewith=a").accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status", is(404)));
+                .andExpect(jsonPath("$[0].name", is("Magazine")));
     }
 
     @Test

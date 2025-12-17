@@ -33,17 +33,16 @@ public class ProductsServiceTest {
 
     @Test
     void givenProductsWhenSearchByTextThenIsNotNull() {
-        List<Product> products = prodService.getProductsByText("Test");
+        List<Product> products = prodService.getProductsByText("a");
         assertThat(products).isNotNull();
         assertThat(products.size()).isGreaterThan(0);
     }
 
     @Test
-    void givenProductsWhenSearchByTextNoExistThenException() {
-        assertThatExceptionOfType(ProductNotfoundException.class).isThrownBy(() -> {
-            List<Product> products = prodService.getProductsByText("a");
-        });
-
+    void givenProductsWhenSearchByTextNoExistThen0Size() {
+        List<Product> products = prodService.getProductsByText("x");
+        assertThat(products).isNotNull();
+        assertThat(products.size()).isEqualTo(0);
     }
 
     @Test

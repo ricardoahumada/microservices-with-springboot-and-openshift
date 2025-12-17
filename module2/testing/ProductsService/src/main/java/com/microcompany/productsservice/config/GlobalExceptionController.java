@@ -17,7 +17,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-//@ControllerAdvice
+@ControllerAdvice
 @RestControllerAdvice
 public class GlobalExceptionController {
 
@@ -26,12 +26,13 @@ public class GlobalExceptionController {
     public ResponseEntity<Object> handleGlobalException(GlobalException exception) {
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
     }
+
     /*@ExceptionHandler(value = ProductNotfoundException.class)
     public ResponseEntity<Object> exception(ProductNotfoundException exception) {
         return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
     }*/
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();

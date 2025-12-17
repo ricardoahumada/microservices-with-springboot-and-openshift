@@ -45,6 +45,8 @@ public class ProductServiceControllerTest_WebMvcTest {
                 new Product(3l, "Fake prod 3", "111-222-555")
         );
 
+        Mockito.when(productsRepositoryMock.findAll()).thenReturn(productsFake);
+
         Mockito.when(prodServiceMock.getProductsByText("")).thenReturn(productsFake);
         Mockito.when(prodServiceMock.getProductsByText("a")).thenThrow(new ProductNotfoundException("No hay productos mock"));
 
@@ -81,14 +83,6 @@ public class ProductServiceControllerTest_WebMvcTest {
                 .andExpect(jsonPath("$[0].name", is("Fake prod 1")));
     }
 
-    @Test
-    public void givenProducts_whenGetProductsBadSearch_thenStatus404() throws Exception {
-        mvc.perform(get("/products?nombrewith=a").accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status", is(404)));
-    }
 
     @Test
     void givenProducts_whenValidCreateProduct_thenIsCreatedAndHaveId() throws Exception {

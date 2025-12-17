@@ -62,8 +62,11 @@ public class ProductsServicePureTest {
                 new Product(2l, "Fake prod 2", "111-222-4444"),
                 new Product(3l, "Fake prod 3", "111-222-555")
         );
+        Mockito.when(productsRepositoryMock.findAll()).thenReturn(productsFake);
+
         Mockito.when(productsRepositoryMock.findByNameContaining("Fake")).thenReturn(productsFake);
         Mockito.when(productsRepositoryMock.findByNameContaining("a")).thenReturn(null);
+        Mockito.when(productsRepositoryMock.findByNameContaining("x")).thenThrow(new ProductNotfoundException());
 
         Mockito.when(productsRepositoryMock.save(Mockito.any(Product.class)))
                 .thenAnswer(elem -> {
@@ -83,7 +86,7 @@ public class ProductsServicePureTest {
     @Test
     void givenProductsWhenSearchByTextNoExistThenException() {
         assertThatExceptionOfType(ProductNotfoundException.class).isThrownBy(() -> {
-            List<Product> products = prodService.getProductsByText("a");
+            List<Product> products = prodService.getProductsByText("x");
         });
 
     }
@@ -108,7 +111,7 @@ public class ProductsServicePureTest {
 
     @Test
     void givenInvalidFormatProduct_WhenCreate_ThenException() {
-        Product newProd = new Product(null, "abc", "111-222-333");
+        Product newProd = new Product(null, "abc", null);
 
         assertThatExceptionOfType(NewProductException.class).isThrownBy(() -> {
             prodService.create(newProd);
