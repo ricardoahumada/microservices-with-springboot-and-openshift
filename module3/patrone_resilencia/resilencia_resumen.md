@@ -724,24 +724,120 @@ resilience4j:
 
 ## **Buenas Prácticas**
 
-### Selección de Patrones
-- **Timeout**: Siempre implementar en servicios externos
-- **Retry**: Para operaciones idempotentes con fallos temporales
-- **Circuit Breaker**: Para servicios críticos con alta latencia
-- **Bulkhead**: Para sistemas con múltiples dependencias
-- **Fallback**: Para funcionalidades no críticas
-- **Rate Limiting**: Para APIs públicas y servicios limitados
-- **Health Checks**: Para monitoreo proactivo
+### 1. **Empieza midiendo antes de actuar**
+> **"No optimices lo que no puedes medir."**
 
-### Configuración
-- **Valores conservador**: Empezar con valores conservadores
-- **Observabilidad**: Monitorear métricas de patrones
-- **Testing**: Probar escenarios de fallo
-- **Gradual**: Implementar patrones gradualmente
-- **Documentación**: Documentar configuraciones de resiliencia
+- Instrumenta tu sistema con **métricas clave**:
+  - Tasa de errores (por servicio y endpoint).
+  - Latencia percentiles (p50, p95, p99).
+  - Número de reintentos.
+  - Estado del circuit breaker (abierto/cerrado).
+- Usa **OpenTelemetry + Prometheus/Grafana** o similar.
+- **Sin métricas**, no sabrás si un patrón está ayudando o empeorando las cosas.
 
-### Monitoreo
-- **Métricas**: Monitorear tasas de éxito/fallo
-- **Alertas**: Configurar alertas para patrones activados
-- **Dashboard**: Visualizar estado de servicios
-- **Logs**: Logging detallado de patrones activados
+### 2. **Haz tus operaciones idempotentes**
+> **Reintentar no debe causar efectos secundarios duplicados.**
+
+- Un **comando idempotente** puede ejecutarse múltiples veces sin cambiar el resultado más allá de la primera vez.
+- **Cómo lograrlo**:
+  - Usa **IDs de solicitud únicos** (client-generated request IDs).
+  - En la base de datos, usa `INSERT ... ON CONFLICT` o verifica antes de actuar.
+- Ejemplo:  
+  ```sql
+  INSERT INTO orders (id, user_id, status) 
+  VALUES ('req-abc123', 123, 'created')
+  ON CONFLICT (id) DO NOTHING;
+  ```
+
+> **Beneficio**: puedes usar **retry con confianza**.
+
+### 3. **Configura timeouts en todos lados (y hazlos realistas)**
+> **Nunca confíes en el valor por defecto.**
+
+- **Timeout de conexión**: tiempo para establecer la conexión.
+- **Timeout de lectura/respuesta**: tiempo para recibir la respuesta completa.
+- **Regla práctica**:
+  - Timeout total < tiempo de respuesta esperado del usuario.
+  - Ej.: Si tu API debe responder en 2s, el timeout a un servicio interno debe ser ≤ 800ms.
+- Usa timeouts **jerárquicos**: el timeout del servicio llamante debe ser mayor que la suma de los timeouts de sus dependencias.
+
+### 4. **Usa retry con inteligencia**
+> **No repitas ciegamente.**
+
+- **Solo en fallos transitorios**: timeouts, errores 5xx, errores de red.
+- **Nunca en errores 4xx** (ej.: 400, 401, 403, 404) → son errores de lógica, no temporales.
+- **Estrategia recomendada**:
+  - Máximo 2–3 reintentos.
+  - **Backoff exponencial**: espera 100ms → 200ms → 400ms.
+  - **Jitter**: añade aleatoriedad para evitar "olas" de reintentos simultáneos.
+- Ejemplo con Resilience4j (Java) o `retry` en Python.
+
+### 5. **Circuit Breaker: ajusta los umbrales con datos**
+> **No uses valores mágicos.**
+
+- Configura basado en métricas reales:
+  - **Umbral de fallos**: ej. "abrir el breaker si > 50% de fallos en 10 segundos".
+  - **Tiempo de espera antes de probar**: ej. 30 segundos.
+  - **Tamaño de la ventana de fallos**: no muy corta (ruido), no muy larga (lento a reaccionar).
+- **Combínalo con fallback**: cuando el breaker está abierto, responde con un valor alternativo o encola la operación.
+
+### 6. **Aísla recursos con Bulkhead**
+> **No dejes que un fallo consuma todos tus hilos/memoria/conexiones.**
+
+- Usa **grupos de hilos separados** o **límites de concurrencia** por dependencia.
+  - Ej.: máximo 10 hilos para llamar al servicio de pagos.
+- En Kubernetes: usa **recursos (CPU/memoria) limitados por contenedor**.
+- En servicios HTTP: limita el **pool de conexiones** por destino.
+
+> Esto evita que un solo servicio lento bloquee todo tu microservicio.
+
+### 7. **Propaga el contexto de trazabilidad en todos los patrones**
+> **Sin `correlation_id` (o `trace_id`), la resiliencia es ciega.**
+
+- Asegúrate de que:
+  - El `correlation_id` se pase en **reintentos**.
+  - Se incluya en **logs de fallback, timeouts y errores del circuit breaker**.
+  - Se use en **colas de mensajes** (como atributo del mensaje).
+- Esto te permite **rastrear todo el ciclo de vida** de una petición, incluso si se reintentó o falló varias veces.
+
+
+### 8. **Haz pruebas de resiliencia (Chaos Engineering)**
+> **"Si no lo pruebas, no funciona."**
+
+- Simula fallos reales en entornos controlados:
+  - Mata contenedores.
+  - Inyecta latencia.
+  - Bloquea redes.
+  - Satura servicios.
+- Herramientas: **Chaos Monkey**, **Gremlin**, **Litmus**, o scripts simples con `tc` (traffic control).
+- Objetivo: verificar que tus patrones de resiliencia **realmente funcionan**.
+
+
+### 9. **Diseña para la degradación controlada (Graceful Degradation)**
+> **Mejor un sistema parcial que uno roto.**
+
+- Identifica funcionalidades **críticas vs. no críticas**.
+  - Crítico: crear clase, iniciar sesión.
+  - No crítico: notificaciones, analytics, recomendaciones.
+- Si falla algo no crítico, **omite o responde con caché**.
+- Notifica al usuario de forma amable: *"Estamos teniendo problemas con las notificaciones, pero tu clase se creó."*
+
+## 10. **Documenta y automatiza las políticas de resiliencia**
+> **No dejes la resiliencia al azar del desarrollador.**
+
+- Crea una **"biblioteca de resiliencia"** compartida:
+  - Configuraciones predefinidas de retry, circuit breaker, timeouts.
+  - Middlewares que inyectan `correlation_id` y miden latencia.
+- Usa **linters o pruebas automáticas** para verificar que:
+  - Todo servicio define timeouts.
+  - Las llamadas externas usan la librería de resiliencia.
+- Documenta los **contratos de nivel de servicio (SLOs)** internos:  
+  > "El servicio de usuarios responde en < 300ms en el p95."
+
+
+###  Conclusión final
+
+> **La resiliencia no es solo código: es una combinación de diseño, observabilidad, automatización y cultura.**  
+> Las buenas prácticas aseguran que tus patrones no solo "funcionen", sino que sean **predecibles, medibles y evolucionables**.
+
+Aplicar estas prácticas desde el inicio te ahorrará noches de incidentes y te dará la confianza para escalar con tranquilidad.
