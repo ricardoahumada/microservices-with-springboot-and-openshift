@@ -16,7 +16,7 @@ public class ValidacionServiceClientFallback implements ValidacionServiceClient 
         log.warn("Fallback activado para validacion de afiliado: {}", request.getDni());
         return ValidacionResponse.builder()
             .valido(false)
-            .mensaje("Servicio de validacion no disponible. Intente mas tarde.")
+            .mensaje("Servicio de validacion no disponible. Intentalo mas tarde!")
             .errores(List.of("SERVICE_UNAVAILABLE"))
             .build();
     }

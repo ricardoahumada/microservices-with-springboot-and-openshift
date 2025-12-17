@@ -13,6 +13,7 @@ import com.mutualidad.afiliado.infrastructure.idempotency.IdempotencyService;
 import com.mutualidad.afiliado.infrastructure.persistence.AfiliadoJpaRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,8 +33,10 @@ public class AfiliadoService {
     private final NotificacionServiceClient notificacionClient;
     private final IdempotencyService idempotencyService;
 
+    // @CircuitBreaker(name = "validacionService") // Por defecto sin fallback
     @CircuitBreaker(name = "validacionService", fallbackMethod = "crearFallback")
     @Retry(name = "validacionService")
+    // @TimeLimiter(name = "validacionService") // el metodo deberia devolver CompletableFuture/CompletionStage
     public Afiliado crear(String idempotencyKey, Afiliado afiliado) {
         // Verificar idempotencia
         Optional<AfiliadoResponse> existing = idempotencyService
