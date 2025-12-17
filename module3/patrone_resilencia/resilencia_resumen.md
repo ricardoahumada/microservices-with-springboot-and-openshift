@@ -749,7 +749,6 @@ resilience4j:
   ON CONFLICT (id) DO NOTHING;
   ```
 
-> **Beneficio**: puedes usar **retry con confianza**.
 
 ### 3. **Configura timeouts en todos lados (y hazlos realistas)**
 > **Nunca confíes en el valor por defecto.**
@@ -809,7 +808,7 @@ resilience4j:
   - Inyecta latencia.
   - Bloquea redes.
   - Satura servicios.
-- Herramientas: **Chaos Monkey**, **Gremlin**, **Litmus**, o scripts simples con `tc` (traffic control).
+- Herramientas: [Chaos Monkey](https://netflix.github.io/chaosmonkey/), [Chaos Mesh](https://chaos-mesh.org/), [Gremlin](https://www.gremlin.com/), [Litmus](https://litmuschaos.io/), o scripts simples con `tc` ([traffic control](https://man7.org/linux/man-pages/man8/tc.8.html)).
 - Objetivo: verificar que tus patrones de resiliencia **realmente funcionan**.
 
 
@@ -817,7 +816,7 @@ resilience4j:
 > **Mejor un sistema parcial que uno roto.**
 
 - Identifica funcionalidades **críticas vs. no críticas**.
-  - Crítico: crear clase, iniciar sesión.
+  - Crítico: crear afiliado, iniciar sesión.
   - No crítico: notificaciones, analytics, recomendaciones.
 - Si falla algo no crítico, **omite o responde con caché**.
 - Notifica al usuario de forma amable: *"Estamos teniendo problemas con las notificaciones, pero tu clase se creó."*
@@ -839,5 +838,4 @@ resilience4j:
 
 > **La resiliencia no es solo código: es una combinación de diseño, observabilidad, automatización y cultura.**  
 > Las buenas prácticas aseguran que tus patrones no solo "funcionen", sino que sean **predecibles, medibles y evolucionables**.
-
-Aplicar estas prácticas desde el inicio te ahorrará noches de incidentes y te dará la confianza para escalar con tranquilidad.
+> Aplicar estas prácticas desde el inicio te ahorrará noches de incidentes y te dará la confianza para escalar con tranquilidad.
