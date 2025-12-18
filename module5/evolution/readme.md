@@ -94,7 +94,7 @@ mutualidad/validacion-service    1.0.0   ghi789   ~200MB
 
 ```bash
 # Levantar Kafka primero
-docker-compose up -d
+docker compose up -d
 
 # Ejecutar afiliado-service
 docker run -d --name afiliado-test \
