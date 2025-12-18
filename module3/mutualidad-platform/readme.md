@@ -43,6 +43,54 @@ Este modulo implementa patrones de resiliencia para comunicacion sincrona entre 
 | beneficio-service | 8082 | Servicio de gestion de beneficios |
 | notificacion-service | 8083 | Servicio de notificaciones |
 
+
+## Resumen Visual Resilencia en afiliado-service
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AFILIADO-SERVICE                         │
+├─────────────────────────────────────────────────────────────┤
+│  AfiliadoService                                            │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────┐                                        │
+│  │  FeignConfig    │ ← Timeouts, Logger, ErrorDecoder       │
+│  └────────┬────────┘                                        │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           FEIGN CLIENTS                             │    │
+│  ├─────────────────┬─────────────────┬─────────────────┤    │
+│  │ Validacion      │ Beneficio       │ Notificacion    │    │
+│  │ ServiceClient   │ ServiceClient   │ ServiceClient   │    │
+│  └────────┬────────┴────────┬────────┴────────┬────────┘    │
+│           │                 │                 │             │
+│           ▼                 ▼                 ▼             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           FALLBACKS (cuando servicio falla)         │    │
+│  ├─────────────────┬─────────────────┬─────────────────┤    │
+│  │ Validacion      │ Beneficio       │ Notificacion    │    │
+│  │ Fallback        │ Fallback        │ Fallback        │    │
+│  │ → PENDIENTE     │ → Lista vacia   │ → PENDIENTE     │    │
+│  └─────────────────┴─────────────────┴─────────────────┘    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           RESILIENCE4J                              │    │
+│  ├─────────────────┬─────────────────┬─────────────────┤    │
+│  │ Circuit Breaker │ Retry           │ Timeout         │    │
+│  │ (application.yml)                                   │    │
+│  └─────────────────┴─────────────────┴─────────────────┘    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           OBSERVABILIDAD                            │    │
+│  ├─────────────────────────────────────────────────────┤    │
+│  │ CircuitBreakersHealthIndicator → /actuator/health   │    │
+│  │ ResilienciaTestController → /api/test/resiliencia   │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+
 ---
 
 ## Compilacion y Ejecucion
