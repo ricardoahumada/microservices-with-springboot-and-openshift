@@ -27,11 +27,14 @@ public class ValidacionController {
     @PostMapping("/estado-laboral")
     public ResponseEntity<ValidacionEstadoLaboralResponse> validarEstadoLaboral(
             @Valid @RequestBody ValidacionEstadoLaboralRequest request,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,  // Agregar
             @RequestParam(value = "simulateError", defaultValue = "NONE") String simulateError,
             @RequestParam(value = "delayMs", defaultValue = "0") long delayMs) {
         
         int requestNum = requestCounter.incrementAndGet();
-        String correlationId = getCorrelationId();
+        if (correlationId == null) {
+            correlationId = "corr-" + System.currentTimeMillis();
+        }
         
         log.info("[{}] Request #{}: Validando estado laboral para DNI: {}, Empresa: {}, SimulateError: {}",
                 correlationId, requestNum, request.getDni(), request.getEmpresaId(), simulateError);

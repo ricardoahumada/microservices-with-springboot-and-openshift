@@ -37,9 +37,12 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
         // Agregar al MDC para logging
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
-        
+        request.setAttribute(CORRELATION_ID_MDC_KEY, correlationId);
+
         // Agregar a la respuesta
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
+
+
 
         try {
             filterChain.doFilter(request, response);

@@ -1,12 +1,16 @@
 package com.mutualidad.afiliado.infrastructure.config;
 
+import com.mutualidad.afiliado.infrastructure.filter.CorrelationIdFilter;
 import feign.Logger;
 import feign.Request;
+import feign.RequestInterceptor;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.concurrent.TimeUnit;
 
@@ -20,11 +24,26 @@ public class FeignConfig {
     }
 
     @Bean
+    public RequestInterceptor correlationIdInterceptor() {
+        return template -> {
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+
+            if (attributes != null) {
+                Object correlationId = attributes.getRequest().getAttribute("correlationId");
+                if (correlationId != null) {
+                    template.header("X-Correlation-ID", correlationId.toString());
+                }
+            }
+        };
+    }
+
+    @Bean
     public Request.Options requestOptions() {
         return new Request.Options(
-            5, TimeUnit.SECONDS,  // connectTimeout
-            5, TimeUnit.SECONDS,  // readTimeout
-            true                   // followRedirects
+                5, TimeUnit.SECONDS,  // connectTimeout
+                5, TimeUnit.SECONDS,  // readTimeout
+                true                   // followRedirects
         );
     }
 
@@ -45,11 +64,11 @@ public class FeignConfig {
         @Override
         public Exception decode(String methodKey, feign.Response response) {
             log.error("Feign error - method: {}, status: {}", methodKey, response.status());
-            
+
             if (response.status() >= 400 && response.status() < 500) {
                 return new BusinessException("Error de cliente: " + response.status());
             }
-            
+
             return defaultDecoder.decode(methodKey, response);
         }
     }
