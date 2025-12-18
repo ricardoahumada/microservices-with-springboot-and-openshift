@@ -1,0 +1,29 @@
+# Configuracion para entorno DEV (Minikube)
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: dev,kubernetes
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: notificacion.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+route:
+  enabled: false
+
+autoscaling:
+  enabled: false

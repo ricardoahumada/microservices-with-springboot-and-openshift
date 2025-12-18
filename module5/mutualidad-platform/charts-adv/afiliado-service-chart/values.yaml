@@ -1,0 +1,84 @@
+# Configuracion base - valores por defecto
+# Sobrescribir con values-dev.yaml o values-prod.yaml
+
+replicaCount: 1
+
+image:
+  repository: ricardoahumada/afiliado-service
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Configuracion del Service
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8081
+
+# Configuracion de recursos (valores base)
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Configuracion de Kafka
+kafka:
+  bootstrapServers: kafka:9092
+  topic: afiliado-eventos
+
+# Variables de entorno
+env:
+  SPRING_PROFILES_ACTIVE: kubernetes
+
+# Probes
+livenessProbe:
+  path: /actuator/health/liveness
+  initialDelaySeconds: 60
+  periodSeconds: 10
+
+readinessProbe:
+  path: /actuator/health/readiness
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# PostgreSQL embebido
+postgresql:
+  enabled: true
+  image:
+    tag: "15"
+  auth:
+    postgresPassword: "admin123"
+    database: "afiliadodb"
+  primary:
+    persistence:
+      size: 1Gi
+
+# Ingress (Minikube/Kubernetes)
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: afiliado.mutualidad.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Route (OpenShift)
+route:
+  enabled: false
+  host: ""
+  tls:
+    enabled: false
+    termination: edge
+
+# HPA (Horizontal Pod Autoscaler)
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80

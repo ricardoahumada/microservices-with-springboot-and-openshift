@@ -1,0 +1,48 @@
+# Configuracion para entorno PROD (OpenShift)
+# Uso: helm install -f values.yaml -f values-prod.yaml
+
+replicaCount: 2
+
+image:
+  repository: ricardoahumada/afiliado-service
+  tag: "1.0.0"
+  pullPolicy: Always
+
+# Recursos de produccion
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: prod,kubernetes
+
+# PostgreSQL prod
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 5Gi
+
+# Ingress deshabilitado en OpenShift
+ingress:
+  enabled: false
+
+# Route habilitado para OpenShift
+route:
+  enabled: true
+  host: afiliado.apps.openshift.local
+  tls:
+    enabled: true
+    termination: edge
+
+# HPA habilitado en produccion
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80

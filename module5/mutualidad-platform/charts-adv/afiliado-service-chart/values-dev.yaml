@@ -1,0 +1,46 @@
+# Configuracion para entorno DEV (Minikube)
+# Uso: helm install -f values.yaml -f values-dev.yaml
+
+replicaCount: 1
+
+image:
+  pullPolicy: IfNotPresent
+
+# Recursos minimos para desarrollo
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: dev,kubernetes
+
+# PostgreSQL dev
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 512Mi
+
+# Ingress habilitado para Minikube
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: afiliado.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Route deshabilitado en dev
+route:
+  enabled: false
+
+# Sin autoscaling en dev
+autoscaling:
+  enabled: false
