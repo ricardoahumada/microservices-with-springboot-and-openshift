@@ -130,6 +130,11 @@ afiliado-service-chart/
 ```bash
 cd charts
 
+# instalar dependencias
+helm dependency build afiliado-service-chart
+helm dependency build notificacion-service-chart
+helm dependency build validacion-service-chart
+
 # Validar sintaxis
 helm lint afiliado-service-chart
 helm lint notificacion-service-chart
