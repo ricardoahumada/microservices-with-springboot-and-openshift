@@ -1,6 +1,10 @@
 version: '3.8'
 
 services:
+  # ============================================
+  # OBSERVABILIDAD - Grafana Stack
+  # ============================================
+
   # OpenTelemetry Collector
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.91.0
@@ -11,12 +15,14 @@ services:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
       - "8888:8888"   # Metricas del collector
+      - "8889:8889"   # Prometheus exporter
     depends_on:
       - jaeger
+      - loki
     networks:
       - mutualidad-network
 
-  # Jaeger - Backend de trazas
+  # Jaeger - Trazas distribuidas
   jaeger:
     image: jaegertracing/all-in-one:1.53
     ports:
@@ -27,7 +33,70 @@ services:
     networks:
       - mutualidad-network
 
-  # Zookeeper
+  # Prometheus - Metricas
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - mutualidad-network
+
+  # Loki - Logs
+  loki:
+    image: grafana/loki:2.9.0
+    user: "0"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - mutualidad-network
+
+  # Promtail - Recolector de logs
+  promtail:
+    image: grafana/promtail:2.9.0
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - mutualidad-network
+
+  # Grafana - Dashboard unificado
+  grafana:
+    image: grafana/grafana:10.2.0
+    volumes:
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+    networks:
+      - mutualidad-network
+
+  # ============================================
+  # MENSAJERIA - Kafka
+  # ============================================
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
@@ -36,7 +105,6 @@ services:
     networks:
       - mutualidad-network
 
-  # Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     depends_on:
@@ -54,7 +122,6 @@ services:
     networks:
       - mutualidad-network
 
-  # Kafka UI
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     ports:
@@ -67,7 +134,10 @@ services:
     networks:
       - mutualidad-network
 
-  # Afiliado Service
+  # ============================================
+  # MICROSERVICIOS
+  # ============================================
+
   afiliado-service:
     build: ./afiliado-service
     ports:
@@ -80,8 +150,13 @@ services:
       - otel-collector
     networks:
       - mutualidad-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
-  # Notificacion Service
   notificacion-service:
     build: ./notificacion-service
     ports:
@@ -94,8 +169,13 @@ services:
       - otel-collector
     networks:
       - mutualidad-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
-  # Validacion Service
   validacion-service:
     build: ./validacion-service
     ports:
@@ -108,7 +188,18 @@ services:
       - otel-collector
     networks:
       - mutualidad-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
 networks:
   mutualidad-network:
     driver: bridge
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:

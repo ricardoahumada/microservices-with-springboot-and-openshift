@@ -1,0 +1,79 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Receptor de metricas de Prometheus (scrape de servicios)
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+        - job_name: 'afiliado-service'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['afiliado-service:8081']
+          metrics_path: '/actuator/prometheus'
+        - job_name: 'notificacion-service'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['notificacion-service:8082']
+          metrics_path: '/actuator/prometheus'
+        - job_name: 'validacion-service'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['validacion-service:8083']
+          metrics_path: '/actuator/prometheus'
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  resource:
+    attributes:
+      - key: environment
+        value: development
+        action: upsert
+
+exporters:
+  # Trazas a Jaeger via OTLP
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Metricas - Prometheus (el collector expone endpoint para scrape)
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: mutualidad
+
+  # Logs a Loki
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
+  # Debug logging
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlp/jaeger, debug]
+    
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch]
+      exporters: [prometheus]
+    
+    logs:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [loki, debug]
