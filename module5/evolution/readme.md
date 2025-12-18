@@ -193,6 +193,7 @@ helm install afiliado afiliado-service-chart
 
 # Verificar pods
 kubectl get pods -l app.kubernetes.io/name=afiliado-service
+kubectl get pods
 ```
 
 Resultado esperado:
