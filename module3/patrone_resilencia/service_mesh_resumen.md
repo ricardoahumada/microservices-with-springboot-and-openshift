@@ -6,6 +6,11 @@ Un Service Mesh es una infraestructura dedicada para manejar la comunicación en
 
 Un Service Mesh es una capa de infraestructura que se sitúa entre los servicios de una aplicación y la red, proporcionando funcionalidades como balanceo de carga, autenticación, autorización, observabilidad, y gestión de tráfico sin requerir cambios en el código de las aplicaciones.
 
+<br>
+
+![Hexagonal](./imgs/service-mesh-1.png)
+
+
 ### Características Principales
 
 - **Sidecar proxy**: Proxy lateral que intercepta todo el tráfico de red
@@ -14,6 +19,10 @@ Un Service Mesh es una capa de infraestructura que se sitúa entre los servicios
 - **Zero-trust security**: Modelo de seguridad sin confianza implícita
 - **Traffic management**: Control granular del tráfico entre servicios
 - **Observability**: Métricas, logs y tracing sin instrumentación de código
+
+<br>
+
+![Hexagonal](./imgs/service-mesh-2.png)
 
 ## **Conceptos Clave**
 
@@ -647,6 +656,65 @@ spec:
         baseEjectionTime: 30s
         maxEjectionPercent: 50
 ```
+
+---
+## **Resilience4j** y el **patrón Sidecar** 
+
+
+| Herramienta | Dónde actúa | Qué hace | Quién lo configura |
+|------------|------------|--------|------------------|
+| **Resilience4j** | **Dentro de tu código** (biblioteca en la app) | Aplica patrones de resiliencia: retry, circuit breaker, rate limiter, bulkhead | **Desarrolladores** (código o config) |
+| **Sidecar (ej. Istio/Envoy)** | **Fuera de tu código**, en la red (proxy junto al Pod) | Aplica resiliencia a nivel de red: timeouts, retries, circuit breaking, TLS | **Operadores/Plataforma** (config de infraestructura) |
+
+> **No son excluyentes**: uno actúa **en la app**, el otro **en la infraestructura**.
+
+### ¿Cómo se relacionan? Tres escenarios
+
+#### 1. **Se complementan: capas de resiliencia**
+
+- **Sidecar (Istio)** maneja fallos a **nivel de red**:  
+  - Timeout en la llamada HTTP.  
+  - Reintento si hay error 5xx.  
+  - Corta el circuito si un servicio está caído.
+
+- **Resilience4j** maneja fallos a **nivel de lógica de negocio**:  
+  - Reintenta una operación **solo si es idempotente**.  
+  - Aplica rate limiting **por usuario o tenant**.  
+  - Usa fallback con datos en caché o valores predeterminados.
+
+> **Ejemplo en *misoroban***:  
+> - Istio reintenta una llamada fallida al servicio de pagos.  
+> - Si sigue fallando, Resilience4j activa un *fallback*: guarda la operación en una cola y muestra "Pago en proceso".
+
+→ **Dos líneas de defensa**: red + negocio.
+
+
+#### 2. **Se solapan: cuidado con los "reintentos en cascada" ⚠️**
+
+Si **ambos** configuran *retry*:
+- Tu app (Resilience4j) hace 3 reintentos.
+- Istio también hace 3 reintentos.
+→ **¡Hasta 9 llamadas reales al destino!** → puede saturar el servicio.
+
+**Buena práctica**:  
+- **Elige un nivel para el retry**.  
+  - Si usas Istio, **desactiva el retry en Resilience4j** para llamadas externas.  
+  - O viceversa: si confías en tu app, desactiva el retry en Istio.
+
+>  **Regla**:  
+> - **Retry en la red (Istio)**: para errores transitorios de red (timeout, conexión rechazada).  
+> - **Retry en la app (Resilience4j)**: para errores de negocio que puedes corregir (ej.: actualizar token OAuth).
+
+
+#### 3. **Casos donde solo uno aplica**
+
+| Caso | Usa Resilience4j | Usa Sidecar (Istio) |
+|------|------------------|---------------------|
+| **Fallback con lógica personalizada** | ✅ Sí (ej.: devolver datos en caché) | ❌ No (solo puede reintentar o fallar) |
+| **Bulkhead por tipo de operación** | ✅ Sí (ej.: hilos separados para lectura/escritura) | ⚠️ Parcial (solo a nivel de conexión HTTP) |
+| **Proteger contra sobrecarga interna** | ✅ Sí (rate limiting por usuario) | ❌ No (solo ve tráfico entrante/saliente) |
+| **Encriptación TLS mutuo** | ❌ No | ✅ Sí (automático con Istio) |
+| **Timeout en llamada HTTP** | ✅ Sí (con WebClient, Feign, etc.) | ✅ Sí (más ligero, sin tocar código) |
 
 ---
 
