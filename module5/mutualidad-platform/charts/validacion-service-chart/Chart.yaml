@@ -1,0 +1,6 @@
+apiVersion: v2
+name: validacion-service
+description: Microservicio de Validacion - Consumidor Kafka con DLQ
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
