@@ -49,7 +49,7 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
         waitDurationInOpenState: 30s
-        failureRateThreshold: 50
+        failureRateThreshold: 1
         slowCallRateThreshold: 80
         slowCallDurationThreshold: 2s
         recordExceptions:
@@ -73,7 +73,7 @@ resilience4j:
   retry:
     instances:
       validacionService:
-        maxAttempts: 3
+        maxAttempts: 2
         waitDuration: 1s
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 2

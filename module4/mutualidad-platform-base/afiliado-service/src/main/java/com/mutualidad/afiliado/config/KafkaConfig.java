@@ -13,20 +13,20 @@ public class KafkaConfig {
     // 
     // Pasos:
     // 1. Inyectar el nombre del topic desde application.yml usando @Value
-    //    @Value("${app.kafka.topic.afiliado-eventos}")
-    //    private String afiliadoEventosTopic;
-    //
+    @Value("${app.kafka.topic.afiliado-eventos}")
+    private String afiliadoEventosTopic;
+    
     // 2. Crear un Bean NewTopic con:
     //    - Nombre: afiliadoEventosTopic
     //    - Particiones: 3 (permite paralelismo)
     //    - Replicas: 1 (desarrollo local)
     //
     // Ejemplo:
-    // @Bean
-    // public NewTopic afiliadoEventosTopic() {
-    //     return TopicBuilder.name(afiliadoEventosTopic)
-    //             .partitions(3)
-    //             .replicas(1)
-    //             .build();
-    // }
+    @Bean
+    public NewTopic afiliadoEventosTopic() {
+        return TopicBuilder.name(afiliadoEventosTopic)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 }

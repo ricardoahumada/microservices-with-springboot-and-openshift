@@ -19,11 +19,11 @@ import java.util.UUID;
 public class AfiliadoEventPublisher {
 
     // TODO Ejercicio 2: Inyectar KafkaTemplate para publicar eventos
-    // private final KafkaTemplate<String, AfiliadoEvent> kafkaTemplate;
+    private final KafkaTemplate<String, AfiliadoEvent> kafkaTemplate;
 
     // TODO Ejercicio 2: Inyectar nombre del topic desde configuracion
-    // @Value("${app.kafka.topic.afiliado-eventos}")
-    // private String topic;
+    @Value("${app.kafka.topic.afiliado-eventos}")
+    private String topic;
 
     /**
      * TODO Ejercicio 2: Implementar publicacion de evento AFILIADO_CREATED
@@ -45,37 +45,37 @@ public class AfiliadoEventPublisher {
         log.info("TODO: Publicar evento AFILIADO_CREATED para DNI: {}", dni);
         
         // Ejemplo de implementacion:
-        // String afiliadoId = UUID.randomUUID().toString();
-        // 
-        // AfiliadoEvent event = AfiliadoEvent.builder()
-        //         .eventId(UUID.randomUUID().toString())
-        //         .eventType("AFILIADO_CREATED")
-        //         .timestamp(LocalDateTime.now())
-        //         .payload(AfiliadoEvent.AfiliadoPayload.builder()
-        //                 .afiliadoId(afiliadoId)
-        //                 .dni(dni)
-        //                 .nombre(nombre)
-        //                 .apellidos(apellidos)
-        //                 .email(email)
-        //                 .empresaId(empresaId)
-        //                 .build())
-        //         .build();
-        //
-        // ListenableFuture<SendResult<String, AfiliadoEvent>> future = 
-        //     kafkaTemplate.send(topic, dni, event);
-        //
-        // future.addCallback(new ListenableFutureCallback<>() {
-        //     @Override
-        //     public void onSuccess(SendResult<String, AfiliadoEvent> result) {
-        //         log.info("Evento publicado: partition={}, offset={}", 
-        //             result.getRecordMetadata().partition(),
-        //             result.getRecordMetadata().offset());
-        //     }
-        //     @Override
-        //     public void onFailure(Throwable ex) {
-        //         log.error("Error publicando evento: {}", ex.getMessage());
-        //     }
-        // });
+        String afiliadoId = UUID.randomUUID().toString();
+        
+        AfiliadoEvent event = AfiliadoEvent.builder()
+                .eventId(UUID.randomUUID().toString())
+                .eventType("AFILIADO_CREATED")
+                .timestamp(LocalDateTime.now())
+                .payload(AfiliadoEvent.AfiliadoPayload.builder()
+                        .afiliadoId(afiliadoId)
+                        .dni(dni)
+                        .nombre(nombre)
+                        .apellidos(apellidos)
+                        .email(email)
+                        .empresaId(empresaId)
+                        .build())
+                .build();
+        
+        ListenableFuture<SendResult<String, AfiliadoEvent>> future = 
+            kafkaTemplate.send(topic, dni, event);
+        
+        future.addCallback(new ListenableFutureCallback<>() {
+            @Override
+            public void onSuccess(SendResult<String, AfiliadoEvent> result) {
+                log.info("Evento publicado: partition={}, offset={}", 
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset());
+            }
+            @Override
+            public void onFailure(Throwable ex) {
+                log.error("Error publicando evento: {}", ex.getMessage());
+            }
+        });
     }
 
     /**
