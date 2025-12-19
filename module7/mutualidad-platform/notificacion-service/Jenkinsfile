@@ -12,7 +12,7 @@ pipeline {
 
     environment {
         APP_NAME = 'notificacion-service'
-        APP_VERSION = '1.0.0'
+        APP_VERSION = ''
         DOCKERHUB_REPO = 'ricardoahumada/notificacion-service'
         OPENSHIFT_PROJECT = "ricardoag-${params.ENVIRONMENT}"
     }
@@ -29,8 +29,36 @@ pipeline {
             steps {
                 checkout scm
                 script {
+                    // Detectar rama actual (quitar prefijo origin/)
+                    env.BRANCH_NAME = env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'unknown'
                     env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    env.IMAGE_TAG = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+                    echo "GIT_BRANCH: ${env.GIT_BRANCH}"
+                    
+                    // Leer version del pom.xml
+                    def pom = readMavenPom file: 'notificacion-service/pom.xml'
+                    def version = pom.version ?: pom.parent?.version ?: '1.0.0'
+                    def appVersion = version.replace('-SNAPSHOT', '')
+                    env.APP_VERSION = appVersion
+                    echo "APP_VERSION: ${appVersion}"
+                    
+                    // GitFlow: Generar IMAGE_TAG segun la rama
+                    if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
+                        env.IMAGE_TAG = appVersion
+                    } else if (env.BRANCH_NAME.startsWith('release/')) {
+                        def releaseVersion = env.BRANCH_NAME.replace('release/', '')
+                        env.IMAGE_TAG = "rc-${releaseVersion}-${BUILD_NUMBER}"
+                    } else if (env.BRANCH_NAME.startsWith('hotfix/')) {
+                        def hotfixVersion = env.BRANCH_NAME.replace('hotfix/', '')
+                        env.IMAGE_TAG = "hotfix-${hotfixVersion}-${BUILD_NUMBER}"
+                    } else if (env.BRANCH_NAME == 'develop') {
+                        env.IMAGE_TAG = "develop-${BUILD_NUMBER}"
+                    } else {
+                        // feature/* u otras ramas
+                        env.IMAGE_TAG = "dev-${GIT_COMMIT_SHORT}"
+                    }
+                    
+                    echo "Branch: ${env.BRANCH_NAME}"
+                    echo "Image Tag: ${env.IMAGE_TAG}"
                 }
             }
         }
@@ -63,15 +91,30 @@ pipeline {
                             
                             echo "Building Docker image: ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                             docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} .
-                            docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest
                             
                             echo "Pushing to DockerHub..."
                             docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                            docker push ${DOCKERHUB_REPO}:latest
                             
                             echo "Push completed successfully"
                         """
                     }
+                }
+            }
+        }
+
+        stage('Tag Latest') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master' }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', 
+                                                  usernameVariable: 'DOCKER_USER', 
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "Tagging as latest..."
+                        docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest
+                        docker push ${DOCKERHUB_REPO}:latest
+                    """
                 }
             }
         }
@@ -133,7 +176,7 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully for ${APP_NAME} v${IMAGE_TAG}"
+            echo "Pipeline completed successfully for ${APP_NAME} v${IMAGE_TAG} (branch: ${env.BRANCH_NAME})"
         }
         failure {
             echo "Pipeline failed for ${APP_NAME}"

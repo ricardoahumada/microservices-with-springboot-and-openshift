@@ -122,8 +122,21 @@ En la seccion **Pipeline**:
 |-------|-------|
 | SCM | Git |
 | Repository URL | URL de tu repositorio Git |
-| Branch | `*/main` o `*/master` |
 | Script Path | `afiliado-service/Jenkinsfile` |
+
+#### Configurar Branch Specifier para GitFlow
+
+En la seccion **Branches to build**, click **Add Branch** para agregar multiples especificadores:
+
+| Branch Specifier |
+|------------------|
+| `*/main` |
+| `*/develop` |
+| `*/release/*` |
+| `*/hotfix/*` |
+| `*/feature/*` |
+
+Esto permite que el pipeline se ejecute desde cualquier rama siguiendo GitFlow.
 
 Click **Save**
 
@@ -184,7 +197,51 @@ docker-compose down -v
 
 ---
 
-## 6. Troubleshooting
+## 6. Triggers Automaticos
+
+### Opcion 1: Polling SCM (simple)
+
+Configura Jenkins para revisar el repositorio periodicamente:
+
+1. En el pipeline, ir a **Configure**
+2. En **Build Triggers**, marcar **Poll SCM**
+3. En Schedule, escribir: `H/5 * * * *` (cada 5 minutos)
+
+```
+# Sintaxis cron
+H/5 * * * *   # Cada 5 minutos
+H/15 * * * *  # Cada 15 minutos
+H * * * *     # Cada hora
+```
+
+### Opcion 2: Webhook (recomendado)
+
+Configura un webhook para disparo inmediato con cada push.
+
+**En Jenkins:**
+1. En el pipeline, ir a **Configure**
+2. En **Build Triggers**, marcar **GitHub hook trigger for GITScm polling**
+
+**En GitHub:**
+1. Ir al repositorio → **Settings** → **Webhooks** → **Add webhook**
+2. Configurar:
+   - **Payload URL**: `http://<jenkins-url>/github-webhook/`
+   - **Content type**: `application/json`
+   - **Events**: Seleccionar **Just the push event**
+3. Click **Add webhook**
+
+**En GitLab:**
+1. Ir al repositorio → **Settings** → **Webhooks**
+2. Configurar:
+   - **URL**: `http://<jenkins-url>/project/<pipeline-name>`
+   - **Trigger**: Push events
+3. Click **Add webhook**
+
+> **Nota**: Para webhooks, Jenkins debe ser accesible desde internet (no funciona con localhost).
+
+---
+
+## 7. Troubleshooting
 
 ### Error: Cannot connect to Docker daemon
 
