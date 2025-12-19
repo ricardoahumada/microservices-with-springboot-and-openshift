@@ -20,7 +20,9 @@ env:
   LOG_LEVEL: WARN
 
 postgresql:
-  enabled: true
+  enabled: false
+  #
+  enabled: false
   image:
     tag: "15"
   auth:
@@ -35,18 +37,18 @@ postgresql:
       size: 20Gi
 
 route:
-  enabled: true
+  enabled: false
   host: notificacion.mutualidad.com
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
 
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 60
 
 podDisruptionBudget:
-  enabled: true
+  enabled: false
   minAvailable: 2

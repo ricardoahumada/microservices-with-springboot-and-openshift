@@ -2,7 +2,7 @@
 replicaCount: 3
 
 image:
-  repository: quay.io/mutualidad/validacion-service
+  repository: quay.io/mutualidad/notificacion-service
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
@@ -20,14 +20,12 @@ env:
   LOG_LEVEL: WARN
 
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "15"
   auth:
-    existingSecret: "validacion-postgresql-secret"
-    database: "validaciondb"
+    existingSecret: "notificacion-postgresql-secret"
+    database: "notificaciondb"
   primary:
     resources:
       limits:
@@ -37,18 +35,18 @@ postgresql:
       size: 20Gi
 
 route:
-  enabled: false
-  host: validacion.mutualidad.com
+  enabled: true
+  host: notificacion.mutualidad.com
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
 
 autoscaling:
-  enabled: false
+  enabled: true
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 60
 
 podDisruptionBudget:
-  enabled: false
+  enabled: true
   minAvailable: 2

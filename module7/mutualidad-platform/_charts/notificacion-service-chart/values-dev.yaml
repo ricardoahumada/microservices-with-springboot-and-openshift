@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: mutualidad/afiliado-service
+  repository: mutualidad/notificacion-service
   tag: "latest"
   pullPolicy: Always
 
@@ -20,14 +20,12 @@ env:
   LOG_LEVEL: DEBUG
 
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "latest"
   auth:
     postgresPassword: "dev123"
-    database: "afiliadodb_dev"
+    database: "notificaciondb_dev"
   primary:
     resources:
       limits:
@@ -35,8 +33,8 @@ postgresql:
         memory: 256Mi
 
 route:
-  enabled: false
-  host: afiliado-dev.apps.openshift.local
+  enabled: true
+  host: notificacion-dev.apps.openshift.local
 
 autoscaling:
   enabled: false

@@ -20,9 +20,7 @@ env:
   LOG_LEVEL: DEBUG
 
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "latest"
   auth:
@@ -35,7 +33,7 @@ postgresql:
         memory: 256Mi
 
 route:
-  enabled: false
+  enabled: true
   host: afiliado-dev.apps.openshift.local
 
 autoscaling:

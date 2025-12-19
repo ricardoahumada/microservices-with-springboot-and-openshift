@@ -43,9 +43,7 @@ readinessProbe:
 
 # PostgreSQL (para ejercicio 3)
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "latest"
   auth:

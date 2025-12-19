@@ -20,9 +20,7 @@ env:
   LOG_LEVEL: INFO
 
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "latest"
   auth:
@@ -35,11 +33,11 @@ postgresql:
         memory: 512Mi
 
 route:
-  enabled: false
+  enabled: true
   host: notificacion-qa.apps.openshift.local
 
 autoscaling:
-  enabled: false
+  enabled: true
   minReplicas: 2
   maxReplicas: 4
   targetCPUUtilizationPercentage: 70

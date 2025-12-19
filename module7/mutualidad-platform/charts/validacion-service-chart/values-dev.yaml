@@ -20,7 +20,9 @@ env:
   LOG_LEVEL: DEBUG
 
 postgresql:
-  enabled: true
+  enabled: false
+  #
+  enabled: false
   image:
     tag: "latest"
   auth:
@@ -33,7 +35,7 @@ postgresql:
         memory: 256Mi
 
 route:
-  enabled: true
+  enabled: false
   host: validacion-dev.apps.openshift.local
 
 autoscaling:

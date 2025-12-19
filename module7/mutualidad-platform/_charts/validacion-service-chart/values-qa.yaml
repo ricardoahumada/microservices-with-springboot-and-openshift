@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  repository: quay.io/mutualidad/notificacion-service
+  repository: quay.io/mutualidad/validacion-service
   tag: "latest"
   pullPolicy: IfNotPresent
 
@@ -20,14 +20,12 @@ env:
   LOG_LEVEL: INFO
 
 postgresql:
-  enabled: false
-  #
-  enabled: false
+  enabled: true
   image:
     tag: "latest"
   auth:
     postgresPassword: "qa_secure_123"
-    database: "notificaciondb_qa"
+    database: "validaciondb_qa"
   primary:
     resources:
       limits:
@@ -35,11 +33,11 @@ postgresql:
         memory: 512Mi
 
 route:
-  enabled: false
-  host: notificacion-qa.apps.openshift.local
+  enabled: true
+  host: validacion-qa.apps.openshift.local
 
 autoscaling:
-  enabled: false
+  enabled: true
   minReplicas: 2
   maxReplicas: 4
   targetCPUUtilizationPercentage: 70

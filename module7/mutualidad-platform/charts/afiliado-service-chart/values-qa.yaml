@@ -20,7 +20,9 @@ env:
   LOG_LEVEL: INFO
 
 postgresql:
-  enabled: true
+  enabled: false
+  #
+  enabled: false
   image:
     tag: "latest"
   auth:
@@ -33,11 +35,11 @@ postgresql:
         memory: 512Mi
 
 route:
-  enabled: true
+  enabled: false
   host: afiliado-qa.apps.openshift.local
 
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 2
   maxReplicas: 4
   targetCPUUtilizationPercentage: 70
