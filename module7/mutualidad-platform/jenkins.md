@@ -32,8 +32,7 @@ Acceder a **http://localhost:8080** e introducir el password inicial.
 Ir a **Manage Jenkins > Plugins > Available plugins** e instalar:
 
 - **Pipeline**
-- **Docker Pipeline**
-- **Kubernetes CLI**
+- **Pipeline Utility Steps** (para leer pom.xml)
 - **Git**
 
 Reiniciar Jenkins despues de instalar.
