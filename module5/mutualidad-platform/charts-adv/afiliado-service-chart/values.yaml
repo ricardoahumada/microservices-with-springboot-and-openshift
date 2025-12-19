@@ -4,7 +4,7 @@
 replicaCount: 1
 
 image:
-  repository: ricardoahumada/afiliado-service
+  repository: mutualidad/afiliado-service
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
