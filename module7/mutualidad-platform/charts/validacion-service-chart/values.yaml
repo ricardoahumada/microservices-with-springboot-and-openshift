@@ -1,9 +1,9 @@
 replicaCount: 2
 
 image:
-  repository: mutualidad/validacion-service
-  tag: "1.0.0"
-  pullPolicy: IfNotPresent
+  repository: ricardoahumada/validacion-service
+  tag: "latest"
+  pullPolicy: Always
 
 service:
   type: ClusterIP

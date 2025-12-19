@@ -27,6 +27,9 @@ RUN addgroup --system --gid 1001 appgroup && \
 # Instalar curl para health checks
 RUN apk add --no-cache curl
 
+# Crear directorio de logs (permisos para OpenShift con UID aleatorio)
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 # Copiar JAR desde etapa de build
 COPY --from=builder /app/target/*.jar app.jar
 

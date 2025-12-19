@@ -21,13 +21,16 @@ RUN addgroup --system --gid 1001 appgroup && \
 
 RUN apk add --no-cache curl
 
+# Crear directorio de logs (permisos para OpenShift con UID aleatorio)
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 COPY --from=builder /app/target/*.jar app.jar
 RUN chown appuser:appgroup app.jar
 
 USER appuser
-EXPOSE 8082
+EXPOSE 8083
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8082/actuator/health || exit 1
+    CMD curl -f http://localhost:8083/actuator/health || exit 1
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
